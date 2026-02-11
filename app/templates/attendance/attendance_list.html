@@ -1,0 +1,117 @@
+{% extends 'attendance/base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+
+            <div class="card shadow-lg border-0">
+
+                <!-- Header -->
+                <div class="card-header bg-dark text-white text-center py-3">
+                    <h4 class="mb-1">Attendance Entry</h4>
+                    <small>
+                        Student {{ current_index }} of {{ total_students }}
+                    </small>
+                </div>
+
+                <!-- Body -->
+                <div class="card-body text-center p-4">
+
+                    <!-- Progress Section -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Progress</small>
+                            <small class="text-muted">
+                                {{ progress_percent }}%
+                            </small>
+                        </div>
+
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success"
+                                 role="progressbar"
+                                 style="width: {{ progress_percent }}%;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Info -->
+                    <div class="mb-4">
+                        <h2 class="fw-bold text-primary">
+                            {{ student.student_name }}
+                        </h2>
+
+                        <p class="mb-1">
+                            <strong>Roll Number:</strong>
+                            {{ student.roll_number }}
+                        </p>
+
+                        <p class="mb-0">
+                            <strong>Course:</strong>
+                            {{ student.course_name }}
+                        </p>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Action Buttons -->
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="d-flex justify-content-center gap-3">
+
+                            <button type="submit"
+                                    name="action"
+                                    value="present"
+                                    class="btn btn-success btn-lg px-4">
+                                ✔ Present
+                            </button>
+
+                            <button type="submit"
+                                    name="action"
+                                    value="absent"
+                                    class="btn btn-danger btn-lg px-4">
+                                ✖ Absent
+                            </button>
+
+                        </div>
+                    </form>
+
+                    <div class="mt-4 text-muted">
+                        <small>
+                            Shortcut: Press <strong>P</strong> for Present |
+                            <strong>A</strong> for Absent
+                        </small>
+                    </div>
+
+                </div>
+
+                <!-- Footer -->
+                <div class="card-footer text-center">
+                    <a href="{% url 'dashboard' %}"
+                       class="btn btn-outline-secondary btn-sm">
+                        Back to Dashboard
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Keyboard Shortcuts -->
+<script>
+document.addEventListener("keydown", function(e) {
+    if (e.key.toLowerCase() === "p") {
+        document.querySelector("button[value='present']").click();
+    }
+    if (e.key.toLowerCase() === "a") {
+        document.querySelector("button[value='absent']").click();
+    }
+});
+</script>
+
+{% endblock %}

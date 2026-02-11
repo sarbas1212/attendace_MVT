@@ -1,0 +1,99 @@
+{% extends 'attendance/base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Edit Attendance</h3>
+        <span class="badge bg-warning fs-6">
+            {{ today }}
+        </span>
+    </div>
+
+    <div class="card shadow-lg border-0">
+        <div class="card-body p-0">
+
+            <table class="table table-hover mb-0">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>Sl No</th>
+                        <th class="text-start">Name</th>
+                        <th>Roll</th>
+                        <th>Course</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for student in students %}
+                    <tr class="text-center align-middle">
+
+                        <td>{{ forloop.counter }}</td>
+
+                        <td class="text-start fw-semibold">
+                            {{ student.student_name }}
+                        </td>
+
+                        <td>{{ student.roll_number }}</td>
+                        <td>{{ student.course_name }}</td>
+
+                        <!-- Status -->
+                        <td>
+                            {% if student.id in absent_student_ids %}
+                                <span class="badge bg-danger">
+                                    Absent
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success">
+                                    Present
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action -->
+                        <td>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden"
+                                       name="student_id"
+                                       value="{{ student.id }}">
+
+                                {% if student.id in absent_student_ids %}
+                                    <button type="submit"
+                                            name="action"
+                                            value="mark_present"
+                                            class="btn btn-success btn-sm">
+                                        Mark Present
+                                    </button>
+                                {% else %}
+                                    <button type="submit"
+                                            name="action"
+                                            value="mark_absent"
+                                            class="btn btn-danger btn-sm">
+                                        Mark Absent
+                                    </button>
+                                {% endif %}
+                            </form>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{% url 'dashboard' %}"
+           class="btn btn-secondary">
+            Back to Dashboard
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}
