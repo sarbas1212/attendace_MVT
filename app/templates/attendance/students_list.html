@@ -131,22 +131,65 @@
 
     <!-- Pagination -->
     <div class="mt-4 text-center">
-        {% if page_obj.has_previous %}
-            <a href="?page=1" class="btn btn-sm btn-outline-dark">First</a>
-            <a href="?page={{ page_obj.previous_page_number }}"
-               class="btn btn-sm btn-outline-dark">Previous</a>
+        <!-- Pagination -->
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="mt-4 d-flex justify-content-center">
+
+            <nav>
+                <ul class="pagination shadow-sm">
+
+                    <!-- Previous Button -->
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link"
+                            href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}">
+                                Previous
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Previous</span>
+                        </li>
+                    {% endif %}
+
+                    <!-- Page Numbers -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    {{ num }}
+                                </span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next Button -->
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link"
+                            href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}">
+                                Next
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next</span>
+                        </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+
+        </div>
         {% endif %}
 
-        <span class="mx-3">
-            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-        </span>
-
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}"
-               class="btn btn-sm btn-outline-dark">Next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}"
-               class="btn btn-sm btn-outline-dark">Last</a>
-        {% endif %}
     </div>
 
     <!-- Footer Info -->

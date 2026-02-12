@@ -1,0 +1,61 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.sqlite3
+*.db
+*.egg-info/
+*.env
+*.venv
+env/
+venv/
+virt/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+*.log
+*.pot
+*.pyc
+*.mo
+*.coverage
+*.DS_Store
+*.idea/
+*.vscode/
+*.pytest_cache/
+*.migrations/__pycache__/
+*.migrations/*.pyc
+staticfiles/
+media/
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# VS Code
+.vscode/
+
+# Mac OS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# PyCharm
+.idea/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Backup files
+*~
+*.bak
+
+# Virtual Environment
+.env/
+.venv/
+virt/

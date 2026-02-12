@@ -1,0 +1,32 @@
+{% extends 'attendance/base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h3>Departments</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Teachers</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dep in departments %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ dep.name }}</td>
+                <td>{{ dep.code }}</td>
+                <td>
+                    {% for teacher in dep.teachers.all %}
+                        {{ teacher.teacher.username }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        None
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

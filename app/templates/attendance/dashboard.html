@@ -1,134 +1,197 @@
 {% extends 'attendance/base.html' %}
 {% block content %}
 
-<div class="container mt-4">
+<div class="container-fluid px-4">
 
-    <h2 class="mb-4 text-center">Attendance Dashboard</h2>
-    <p class="text-center text-muted">Date: {{ today }}</p>
-
-    <!-- Stats Cards -->
-    <div class="row text-center mb-4">
-
-        <div class="col-md-3">
-            <div class="card shadow border-0 bg-primary text-white">
-                <div class="card-body">
-                    <h5>Total Students</h5>
-                    <h2>{{ total_students }}</h2>
-                </div>
-            </div>
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div>
+            <h2 class="fw-bold mb-0">Admin Dashboard</h2>
+            <small class="text-muted">Attendance Overview - {{ today }}</small>
         </div>
-
-        <div class="col-md-3">
-            <div class="card shadow border-0 bg-success text-white">
-                <div class="card-body">
-                    <h5>Present Today</h5>
-                    <h2>{{ total_present_today }}</h2>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow border-0 bg-danger text-white">
-                <div class="card-body">
-                    <h5>Absent Today</h5>
-                    <h2>{{ total_absent_today }}</h2>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow border-0 bg-warning text-dark">
-                <div class="card-body">
-                    <h5>Attendance %</h5>
-                    <h2>{{ attendance_percent }}%</h2>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Progress Bar -->
-    <div class="progress mb-5" style="height: 25px;">
-        <div class="progress-bar bg-success"
-             role="progressbar"
-             style="width: {{ attendance_percent }}%;">
-            {{ attendance_percent }}%
+        <div class="d-flex align-items-center">
+            <span class="badge bg-dark p-2 me-3">
+                {{ user.username }}
+            </span>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-dark btn-sm">
+                    Logout
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- Course Stats -->
-    <div class="row mb-5">
+    <!-- Top Stats Cards -->
+    <div class="row g-4 my-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 text-center bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="text-uppercase">Total Students</h6>
+                    <h2 class="fw-bold">{{ total_students }}</h2>
+                    <i class="bi bi-people-fill fs-3 mt-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 text-center bg-info text-white">
+                <div class="card-body">
+                    <h6 class="text-uppercase">Departments</h6>
+                    <h2 class="fw-bold">{{ total_departments }}</h2>
+                    <i class="bi bi-building fs-3 mt-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 text-center bg-secondary text-white">
+                <div class="card-body">
+                    <h6 class="text-uppercase">Teachers</h6>
+                    <h2 class="fw-bold">{{ total_teachers }}</h2>
+                    <i class="bi bi-person-badge fs-3 mt-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 text-center bg-success text-white">
+                <div class="card-body">
+                    <h6 class="text-uppercase">Attendance %</h6>
+                    <h2 class="fw-bold">{{ attendance_percent }}%</h2>
+                    <i class="bi bi-check2-circle fs-3 mt-2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Progress -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h6 class="mb-3 fw-semibold">Today's Attendance Progress</h6>
+            <div class="progress" style="height: 28px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                     role="progressbar"
+                     style="width: {{ attendance_percent }}%;">
+                    {{ attendance_percent }}%
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Departments Cards -->
+    <div class="row g-4 mb-4">
+        {% for dept in departments %}
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body text-center">
+                        <h6 class="fw-bold text-uppercase">{{ dept.name }}</h6>
+                        <p class="mb-1"><strong>Students:</strong> {{ dept.students_count }}</p>
+                        <p class="mb-0"><strong>Teachers:</strong> {{ dept.teachers_count }}</p>
+                        <i class="bi bi-building fs-2 mt-2 text-secondary"></i>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">No departments available.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Course Distribution & Today's Absentees -->
+    <div class="row g-4">
+
         <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-dark text-white">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-semibold">
                     Course Distribution
                 </div>
                 <div class="card-body">
-                    <ul class="list-group">
-                        {% for course in course_stats %}
-                        <li class="list-group-item d-flex justify-content-between">
-                            {{ course.course_name }}
-                            <span class="badge bg-primary">{{ course.count }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    {% for course in course_stats %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded hover-bg-light">
+                            <span>{{ course.course_name }}</span>
+                            <span class="badge bg-primary px-3 py-2">{{ course.count }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No course data available.</p>
+                    {% endfor %}
                 </div>
             </div>
         </div>
 
-        <!-- Recent Absentees -->
         <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-danger text-white">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-danger text-white fw-semibold">
                     Today's Absentees
                 </div>
                 <div class="card-body">
-                    <ul class="list-group">
-                        {% for absence in recent_absentees %}
-                        <li class="list-group-item">
-                            {{ absence.student.student_name }}
-                            ({{ absence.student.roll_number }})
-                        </li>
-                        {% empty %}
-                        <li class="list-group-item text-success">
-                            No absentees today 🎉
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    {% for absence in recent_absentees %}
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div>
+                                <strong>{{ absence.student.student_name }}</strong><br>
+                                <small class="text-muted">
+                                    Roll: {{ absence.student.roll_number }} | Dept: {{ absence.student.department.name }}
+                                </small>
+                            </div>
+                            <span class="badge bg-danger">Absent</span>
+                        </div>
+                    {% empty %}
+                        <div class="text-success fw-semibold">No absentees today 🎉</div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
+
     </div>
 
-    <!-- Quick Actions -->
-    <div class="row mt-5 text-center">
+    <!-- Quick Actions Buttons -->
+    <div class="mt-5">
+        <h5 class="mb-3 fw-semibold">Quick Actions</h5>
+        <div class="row g-3">
+            {% comment %} Use hover shadow & subtle colors for professional look {% endcomment %}
+            <div class="col-md-2">
+                <a href="{% url 'attendance_list' %}" class="btn btn-success w-100 py-3 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                    📝 Take Attendance
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'students_list' %}" class="btn btn-info w-100 py-3 shadow-sm text-white d-flex align-items-center justify-content-center gap-2">
+                    👨‍🎓 View Students
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'import_students' %}" class="btn btn-primary w-100 py-3 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                    ⬆ Import Students
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'edit_attendance' %}" class="btn btn-warning w-100 py-3 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                    ✏ Edit Attendance
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'add_department' %}" class="btn btn-secondary w-100 py-3 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                    🏢 Add Department
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'list_departments' %}" class="btn btn-info w-100 py-3 shadow-sm text-white d-flex align-items-center justify-content-center gap-2">
+                    🗂 View Departments
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'add_teacher' %}" class="btn btn-dark w-100 py-3 shadow-sm text-white d-flex align-items-center justify-content-center gap-2">
+                    👩‍🏫 Add Teacher
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'list_teachers' %}" class="btn btn-primary w-100 py-3 shadow-sm text-white d-flex align-items-center justify-content-center gap-2">
+                    👩‍🏫 View Teachers
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'assign_teacher_department' %}" class="btn btn-warning w-100 py-3 shadow-sm text-white">
+                    👩‍🏫 Assign Class Teacher
+                </a>
+            </div>
 
-    <div class="col-md-4 mb-3">
-        <a href="{% url 'attendance_list' %}"
-           class="btn btn-success btn-lg w-100 shadow">
-            📝 Take Attendance
-        </a>
-    </div>
-
-    <div class="col-md-4 mb-3">
-        <a href="{% url 'students_list' %}"
-           class="btn btn-info btn-lg w-100 shadow text-white">
-            👨‍🎓 View Students
-        </a>
-    </div>
-
-    <div class="col-md-4 mb-3">
-        <a href="{% url 'import_students' %}"
-           class="btn btn-primary btn-lg w-100 shadow">
-            ⬆ Import Students
-        </a>
-    </div>
-
-    <div class="col-md-3 mb-3">
-        <a href="{% url 'edit_attendance' %}"
-        class="btn btn-warning btn-lg w-100 shadow">
-            ✏ Edit Attendance
-        </a>
+        </div>
     </div>
 
 </div>
