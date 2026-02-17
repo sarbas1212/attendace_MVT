@@ -1,5 +1,5 @@
-from datetime import timezone
-from itertools import count
+from django.utils import timezone
+from  django.db.models import Count
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -32,7 +32,7 @@ def teacher_dashboard(request):
     today = timezone.now().date()
 
     # Get departments assigned to this teacher
-    assigned_departments = TeacherDepartment.objects.filter(teacher=teacher)
+    assigned_departments = Teachers.objects.filter(teacher=teacher)
     departments = [td.department for td in assigned_departments]
 
     # Filter students by teacher's departments only
@@ -52,7 +52,8 @@ def teacher_dashboard(request):
     attendance_percent = round((total_present_today / total_students) * 100, 2) if total_students else 0
 
     # Course distribution within teacher's departments
-    course_stats = students.values('course_name').annotate(count=count('id'))
+    department_stats = students.values('department__name').annotate(count=Count('id'))
+
 
     # Recent absentees today
     recent_absentees = absences_today.select_related('student')
@@ -66,7 +67,7 @@ def teacher_dashboard(request):
         'total_present_today': total_present_today,
         'total_absent_today': total_absent_today,
         'attendance_percent': attendance_percent,
-        'course_stats': course_stats,
+        'department_stats': department_stats,
         'recent_absentees': recent_absentees,
         'departments': departments,
         'class_teacher_departments': class_teacher_departments,

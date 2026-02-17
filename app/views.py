@@ -51,44 +51,59 @@ def import_students(request):
 
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
-        department_id = request.POST.get('department')
-        department = Department.objects.get(id=department_id)
 
         if form.is_valid():
+
             file = request.FILES['file']
 
-            try:
-                if file.name.endswith('.csv'):
-                    df = pd.read_csv(file)
-                elif file.name.endswith('.xlsx'):
-                    df = pd.read_excel(file, engine='openpyxl')
-                else:
-                    raise Exception("Unsupported file format")
-            except Exception as e:
-                return render(request, 'attendance/import.html', {'form': form, 'error': str(e)})
+            # 🔒 Auto assign department for teacher
+            if request.user.role == "TEACHER":
+                teacher_record = Teachers.objects.filter(teacher=request.user).first()
 
-            required_columns = ['Student Name', 'Roll Number', 'Course Name']
+                if not teacher_record:
+                    messages.error(request, "No department assigned to you.")
+                    return redirect('import_students')
+
+                department = teacher_record.department
+
+            else:
+                # Admin can choose department
+                department_id = request.POST.get('department')
+                department = get_object_or_404(Department, id=department_id)
+
+            # Read file
+            if file.name.endswith('.csv'):
+                df = pd.read_csv(file)
+            else:
+                df = pd.read_excel(file)
+
+            required_columns = ['Student Name', 'Roll Number']
+
             if not all(col in df.columns for col in required_columns):
-                return render(request, 'attendance/import.html', {'form': form, 'error': 'Required columns missing.'})
+                messages.error(request, "Required columns missing.")
+                return redirect('import_students')
 
             for _, row in df.iterrows():
                 Student.objects.update_or_create(
                     roll_number=row['Roll Number'],
                     defaults={
                         'student_name': row['Student Name'],
-                        'course_name': row['Course Name'],
                         'department': department
                     }
                 )
 
-            messages.success(request, "✅ Students Imported Successfully!")
-            return redirect('attendance_list')
+            messages.success(request, "Students imported successfully!")
+            return redirect('students_list')
 
     else:
         form = UploadFileForm()
 
     departments = Department.objects.all()
-    return render(request, 'attendance/import.html', {'form': form, 'departments': departments})
+
+    return render(request, 'attendance/import.html', {
+        'form': form,
+        'departments': departments
+    })
 
 @role_required(['ADMIN', 'TEACHER'])
 def attendance_list(request):
@@ -185,7 +200,10 @@ def dashboard(request):
 
     # Admin Dashboard
     today = timezone.now().date()
+    teacher = request.user
 
+    assigned_departments = Teachers.objects.filter(teacher=teacher)
+    departments = [td.department for td in assigned_departments]
     # Attendance stats
     total_students = Student.objects.count()
     total_absent_today = Absence.objects.filter(date=today).count()
@@ -195,6 +213,9 @@ def dashboard(request):
     # Department & Teacher stats
     total_departments = Department.objects.count()
     total_teachers = Teachers.objects.count()  # correctly counting assigned teachers
+
+    students = Student.objects.filter(department__in=departments)
+    department_stats = students.values('department__name').annotate(count=Count('id'))
 
     # Department-wise student and teacher counts
     departments = Department.objects.annotate(
@@ -206,7 +227,7 @@ def dashboard(request):
     recent_absentees = Absence.objects.filter(date=today).select_related('student', 'student__department')
 
     # Optional: course stats (still useful)
-    course_stats = Student.objects.values('course_name').annotate(count=Count('id')).order_by('course_name')
+    # course_stats = Student.objects.values('course_name').annotate(count=Count('id')).order_by('course_name')
 
     context = {
         'today': today,
@@ -215,10 +236,11 @@ def dashboard(request):
         'total_absent_today': total_absent_today,
         'attendance_percent': attendance_percent,
         'total_departments': total_departments,
+        'department_stats': department_stats,
         'total_teachers': total_teachers,
         'departments': departments,
         'recent_absentees': recent_absentees,
-        'course_stats': course_stats,
+        # 'course_stats': course_stats,
     }
 
     return render(request, 'attendance/dashboard.html', context)
@@ -337,12 +359,11 @@ def dashboard(request):
 
 
 
-
 def students_list(request):
     query = request.GET.get('q')
-    course_filter = request.GET.get('course')
+    department_filter = request.GET.get('department')
 
-    students = Student.objects.all().order_by('id')
+    students = Student.objects.select_related('department').all().order_by('id')
 
     # 🔎 Search
     if query:
@@ -351,25 +372,22 @@ def students_list(request):
             Q(roll_number__icontains=query)
         )
 
-    # 🎓 Course Filter
-    if course_filter:
-        students = students.filter(course_name=course_filter)
+    # 🏫 Department Filter
+    if department_filter:
+        students = students.filter(department_id=department_filter)
 
-    # 📚 Get distinct courses
-    courses = Student.objects.values_list(
-        'course_name',
-        flat=True
-    ).distinct()
+    # 📚 Get distinct departments
+    departments = Department.objects.all()
 
-    # 📄 Pagination (10 per page)
+    # 📄 Pagination
     paginator = Paginator(students, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
         'page_obj': page_obj,
-        'courses': courses,
-        'selected_course': course_filter,
+        'departments': departments,
+        'selected_department': department_filter,
         'search_query': query
     }
 
@@ -423,7 +441,7 @@ def edit_student(request, pk):
     if request.method == "POST":
         student.student_name = request.POST.get("student_name")
         student.roll_number = request.POST.get("roll_number")
-        student.course_name = request.POST.get("course_name")
+        student.department = request.POST.get("department")
         student.save()
         return redirect('students_list')
 

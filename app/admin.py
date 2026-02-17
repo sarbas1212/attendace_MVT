@@ -9,8 +9,8 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('student_name', 'roll_number', 'course_name', 'department')
-    list_filter = ('department', 'course_name')
+    list_display = ('student_name', 'roll_number', 'department')
+    list_filter = ('department', 'roll_number')
 
 @admin.register(Teachers)
 class TeachersAdmin(admin.ModelAdmin):

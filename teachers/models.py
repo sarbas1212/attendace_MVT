@@ -13,6 +13,13 @@ class Teachers(models.Model):
 
     class Meta:
         unique_together = ('department', 'teacher')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['department'],
+                condition=models.Q(is_class_teacher=True),
+                name='unique_class_teacher_per_department'
+            )
+        ]
 
     def __str__(self):
         return f"{self.teacher.username} → {self.department.name} ({'Class Teacher' if self.is_class_teacher else 'Teacher'})"

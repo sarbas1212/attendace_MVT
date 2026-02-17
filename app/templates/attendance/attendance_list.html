@@ -76,7 +76,7 @@
                                 <td>{{ forloop.counter }}</td>
                                 <td class="text-start">{{ student.student_name }}</td>
                                 <td>{{ student.roll_number }}</td>
-                                <td>{{ student.course_name }}</td>
+                                <td>{{ absence.student.department }}</td>
                                 <td>
                                     <input type="hidden" name="status_{{ student.id }}" value="{% if student.id not in absent_ids %}present{% else %}absent{% endif %}">
 

@@ -79,15 +79,15 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-dark text-white">
-                    Course Distribution
+                    Departments
                 </div>
                 <div class="card-body">
 
-                    {% for course in course_stats %}
+                    {% for department in department_stats %}
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>{{ course.course_name }}</span>
+                            <span>{{ department.department__name }}</span>
                             <span class="badge bg-primary px-3 py-2">
-                                {{ course.count }}
+                                {{ department.count }}
                             </span>
                         </div>
                     {% empty %}
