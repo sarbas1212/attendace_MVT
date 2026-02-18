@@ -1,32 +1,69 @@
 {% extends 'attendance/base.html' %}
+
+{% block title %}Departments — Attendance Pro{% endblock %}
+{% block nav_departments %}active{% endblock %}
+{% block page_title %}Departments{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h3>Departments</h3>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Code</th>
-                <th>Teachers</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dep in departments %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ dep.name }}</td>
-                <td>{{ dep.code }}</td>
-                <td>
-                    {% for teacher in dep.teachers.all %}
-                        {{ teacher.teacher.username }}{% if not forloop.last %}, {% endif %}
+<div class="card table-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h6 class="fw-semibold mb-0">
+            <i class="bi bi-building-fill text-info me-2"></i>
+            All Departments
+        </h6>
+        <a href="{% url 'add_department' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Department
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dept in departments %}
+                    <tr>
+                        <td class="text-muted">{{ forloop.counter }}</td>
+                        <td class="fw-medium">{{ dept.name }}</td>
+                        <td><span class="badge bg-light text-dark">{{ dept.code }}</span></td>
+                        <td class="text-muted">{{ dept.description|truncatechars:50|default:"—" }}</td>
+                        <td>
+                            {% if dept.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'edit_department' dept.pk %}" class="btn btn-sm btn-outline-primary me-1"
+                                title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'delete_department' dept.pk %}" class="btn btn-sm btn-outline-danger"
+                                title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
                     {% empty %}
-                        None
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            No departments yet.
+                            <a href="{% url 'add_department' %}">Add one</a>.
+                        </td>
+                    </tr>
                     {% endfor %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}

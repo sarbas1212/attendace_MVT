@@ -1,454 +1,462 @@
-from datetime import date, datetime
-from django.contrib import messages
+"""
+app/views.py
+Core views: Dashboard, Attendance, Students, Import, Absentees, Student Portal.
+"""
+from datetime import datetime
 
 from django.utils import timezone
-from django.http import JsonResponse
-import pandas as pd
-from django.shortcuts import render, redirect
-
-from accounts.models import User
-from .models import Absence, Student
-from teachers.models import Teachers
-from departments.models import Department
-from .forms import UploadFileForm
-from teachers.forms import AssignTeacherForm,TeacherCreationForm
-from departments.forms import DepartmentForm
-from django.db.models import Count
-from django.db.models import Q
-
-from django.shortcuts import get_object_or_404
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
+from django.db.models import Count, Q
 from django.core.paginator import Paginator
-
-# from django.contrib.auth.views import LoginView, LogoutView
-from django.contrib.auth import logout
-from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 
 from accounts.decorators import role_required
-# views.py
+from accounts.models import User
+from departments.models import Department
+from teachers.models import TeacherAssignment
+from .models import Absence, Student
+from .forms import UploadFileForm, StudentEditForm, StudentPasswordChangeForm
+from .services import get_attendance_stats, import_students_from_file, mark_attendance_for_date
 
 
+# ──────────────────────────────────────────────
+# Admin Dashboard
+# ──────────────────────────────────────────────
+@role_required(['ADMIN'])
+def dashboard(request):
+    """Admin dashboard: system-wide attendance statistics and quick actions."""
+    today = timezone.now().date()
+
+    # System-wide stats
+    all_students = Student.objects.filter(is_active=True)
+    stats = get_attendance_stats(all_students, today)
+
+    # Department & teacher counts
+    total_departments = Department.objects.filter(is_active=True).count()
+    total_teachers = User.objects.filter(role='TEACHER', is_active=True).count()
+
+    # Department-wise stats
+    departments = Department.objects.filter(is_active=True).annotate(
+        students_count=Count('students', filter=Q(students__is_active=True), distinct=True),
+        teachers_count=Count('teacher_assignments', distinct=True),
+    )
+
+    # Today's absentees
+    recent_absentees = (
+        Absence.objects.filter(date=today, student__is_active=True)
+        .select_related('student', 'student__department')
+        .order_by('student__department__name', 'student__roll_number')
+    )
+
+    context = {
+        'today': today,
+        'total_students': stats['total'],
+        'total_present_today': stats['present'],
+        'total_absent_today': stats['absent'],
+        'attendance_percent': stats['percentage'],
+        'total_departments': total_departments,
+        'total_teachers': total_teachers,
+        'departments': departments,
+        'recent_absentees': recent_absentees,
+    }
+    return render(request, 'attendance/dashboard.html', context)
 
 
-# class CustomLoginView(LoginView):
-#     template_name = 'attendance/login.html'
-#     redirect_authenticated_user = True
+# ──────────────────────────────────────────────
+# Student Dashboard (Student Login Portal)
+# ──────────────────────────────────────────────
+@role_required(['STUDENT'])
+def student_dashboard(request):
+    """
+    Student self-service portal.
+    Shows their own attendance percentage, present/absent day counts,
+    and a history of absence records.
+    """
+    user = request.user
 
-#     def get_success_url(self):
-#         user = self.request.user
-#         if user.role == 'STUDENT':
-#             return reverse_lazy('my_attendance')
-#         elif user.role == 'TEACHER':
-#             return reverse_lazy('teacher_dashboard')
-#         else:
-#             return reverse_lazy('dashboard')  # Admin
+    # Find the student record linked to this user
+    try:
+        student = Student.objects.select_related('department').get(user=user)
+    except Student.DoesNotExist:
+        messages.error(request, "No student record is linked to your account. Please contact the administrator.")
+        return render(request, 'attendance/student_dashboard.html', {'student': None})
 
-# class CustomLogoutView(LogoutView):
-#     next_page = reverse_lazy('login')
+    # Calculate attendance stats for this student
+    today = timezone.now().date()
+    total_absences = Absence.objects.filter(student=student).count()
 
+    # Count total school days (distinct dates with any absence record in the system)
+    # A simpler approach: count from the student's creation date to today
+    from datetime import timedelta
+    start_date = student.created_at.date() if student.created_at else today
+    total_possible_days = max((today - start_date).days, 1)  # At least 1
+
+    # Actually, let's count distinct dates where attendance was marked for student's department
+    total_marked_days = (
+        Absence.objects.filter(student__department=student.department)
+        .values('date').distinct().count()
+    )
+    # If no attendance has been marked yet, use 1 to avoid division by zero
+    if total_marked_days == 0:
+        total_marked_days = 1
+
+    days_present = total_marked_days - total_absences
+    if days_present < 0:
+        days_present = 0
+
+    attendance_percent = round((days_present / total_marked_days) * 100, 1)
+
+    # Absence history
+    absence_history = (
+        Absence.objects.filter(student=student)
+        .order_by('-date')
+        .select_related('marked_by')
+    )
+
+    context = {
+        'student': student,
+        'today': today,
+        'total_marked_days': total_marked_days,
+        'total_absences': total_absences,
+        'days_present': days_present,
+        'attendance_percent': attendance_percent,
+        'absence_history': absence_history,
+    }
+    return render(request, 'attendance/student_dashboard.html', context)
+
+
+# ──────────────────────────────────────────────
+# Import Students from Excel/CSV
+# ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
 def import_students(request):
-
+    """
+    Import students from an Excel/CSV file.
+    - Teachers can only import into their assigned department.
+    - Admins can choose any department.
+    """
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
-
         if form.is_valid():
-
             file = request.FILES['file']
 
-            # 🔒 Auto assign department for teacher
-            if request.user.role == "TEACHER":
-                teacher_record = Teachers.objects.filter(teacher=request.user).first()
-
-                if not teacher_record:
-                    messages.error(request, "No department assigned to you.")
+            # Determine department
+            if request.user.is_teacher:
+                assignment = TeacherAssignment.objects.filter(teacher=request.user).first()
+                if not assignment:
+                    messages.error(request, "No department assigned to you. Contact the administrator.")
                     return redirect('import_students')
-
-                department = teacher_record.department
-
+                department = assignment.department
             else:
-                # Admin can choose department
                 department_id = request.POST.get('department')
+                if not department_id:
+                    messages.error(request, "Please select a department.")
+                    return redirect('import_students')
                 department = get_object_or_404(Department, id=department_id)
 
-            # Read file
-            if file.name.endswith('.csv'):
-                df = pd.read_csv(file)
-            else:
-                df = pd.read_excel(file)
+            # Use service function for import
+            result = import_students_from_file(file, department)
 
-            required_columns = ['Student Name', 'Roll Number']
+            if result['errors']:
+                for error in result['errors']:
+                    messages.warning(request, error)
 
-            if not all(col in df.columns for col in required_columns):
-                messages.error(request, "Required columns missing.")
-                return redirect('import_students')
-
-            for _, row in df.iterrows():
-                Student.objects.update_or_create(
-                    roll_number=row['Roll Number'],
-                    defaults={
-                        'student_name': row['Student Name'],
-                        'department': department
-                    }
+            if result['created'] or result['updated']:
+                messages.success(
+                    request,
+                    f"Import complete: {result['created']} created, {result['updated']} updated."
                 )
+            elif not result['errors']:
+                messages.info(request, "No students were imported.")
 
-            messages.success(request, "Students imported successfully!")
             return redirect('students_list')
-
     else:
         form = UploadFileForm()
 
-    departments = Department.objects.all()
-
+    departments = Department.objects.filter(is_active=True)
     return render(request, 'attendance/import.html', {
         'form': form,
-        'departments': departments
+        'departments': departments,
     })
 
+
+# ──────────────────────────────────────────────
+# Attendance Marking
+# ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
 def attendance_list(request):
+    """
+    Mark / view attendance for a given date.
+    Teachers see only students in their assigned departments.
+    Admin sees all students (with optional department filter).
+    """
     today = timezone.now().date()
 
-    # Filter students based on teacher's department
-    if request.user.role == 'TEACHER':
-        teacher_departments = Teachers.objects.filter(teacher=request.user).values_list('department', flat=True)
-        students = Student.objects.filter(department__in=teacher_departments).order_by('id')
+    # Build student queryset based on role
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user
+        ).values_list('department_id', flat=True)
+        students = Student.objects.filter(
+            department_id__in=teacher_dept_ids, is_active=True
+        ).select_related('department')
     else:
-        students = Student.objects.all().order_by('id')
+        students = Student.objects.filter(is_active=True).select_related('department')
+
+    # Department filter (admin only)
+    dept_filter = request.GET.get('department')
+    if dept_filter:
+        students = students.filter(department_id=dept_filter)
+
+    students = students.order_by('department__name', 'roll_number')
 
     # Handle selected date
-    selected_date_str = request.GET.get('date')
+    selected_date_str = request.GET.get('date') or request.POST.get('date')
     if selected_date_str:
-        selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+        try:
+            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            selected_date = today
         if selected_date > today:
             selected_date = today
     else:
         selected_date = today
 
+    # Handle POST (attendance submission)
     if request.method == "POST":
-        date_str = request.POST.get("date")
-        if date_str:
-            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            if selected_date > today:
-                selected_date = today
-
+        absent_ids = set()
         for student in students:
             status = request.POST.get(f"status_{student.id}")
             if status == "absent":
-                Absence.objects.get_or_create(student=student, date=selected_date)
-            else:
-                Absence.objects.filter(student=student, date=selected_date).delete()
+                absent_ids.add(student.id)
 
-        messages.success(request, "✅ Attendance Marked Successfully!")
+        mark_attendance_for_date(students, absent_ids, selected_date, marked_by=request.user)
+        messages.success(request, f"Attendance marked for {selected_date.strftime('%d %b %Y')}!")
         return redirect(f"{request.path}?date={selected_date.strftime('%Y-%m-%d')}")
 
-    absent_ids = Absence.objects.filter(date=selected_date, student__in=students).values_list('student_id', flat=True)
+    # Get current absence records for the selected date
+    absent_ids = set(
+        Absence.objects.filter(
+            date=selected_date, student__in=students
+        ).values_list('student_id', flat=True)
+    )
 
-    return render(request, 'attendance/attendance_list.html', {
+    # Stats for the selected date
+    stats = get_attendance_stats(students, selected_date)
+
+    departments = Department.objects.filter(is_active=True)
+
+    context = {
         'students': students,
         'absent_ids': absent_ids,
         'selected_date': selected_date,
-        'today': today
-    })
+        'today': today,
+        'stats': stats,
+        'departments': departments,
+        'selected_department': dept_filter,
+    }
+    return render(request, 'attendance/attendance_list.html', context)
 
+
+# ──────────────────────────────────────────────
+# Absentees List (with Print support)
+# ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
 def absentees_list(request):
-
-    selected_date = request.POST.get("date")
-
-    if selected_date:
-        selected_date = date.fromisoformat(selected_date)
-    else:
-        selected_date = timezone.now().date()
-
-    absentees = Absence.objects.filter(date=selected_date)
-
-    return render(request, 'attendance/absentees.html', {
-        'absentees': absentees,
-        'selected_date': selected_date
-    })
-
-
-
-def mark_attendance(request):
-    if request.method == "POST":
-        student_id = request.POST.get("student_id")
-        action = request.POST.get("action")
-
-        if not student_id:
-            return JsonResponse({"error": "No student ID"}, status=400)
-
-        student = Student.objects.get(id=int(student_id))
-
-        if action == "absent":
-            Absence.objects.create(student=student)
-
-        return JsonResponse({"status": "success"})
-    
-
-
-
-@role_required(['ADMIN'])
-def dashboard(request):
-    role = request.user.role
-
-    if role == 'STUDENT':
-        return redirect('my_attendance')
-
-    if role == 'TEACHER':
-        return redirect('teacher_dashboard')
-
-    # Admin Dashboard
+    """
+    View absentees for a specific date (GET-based filter for bookmarkable URLs).
+    Includes print-ready layout.
+    """
     today = timezone.now().date()
-    teacher = request.user
+    selected_date_str = request.GET.get('date')
 
-    assigned_departments = Teachers.objects.filter(teacher=teacher)
-    departments = [td.department for td in assigned_departments]
-    # Attendance stats
-    total_students = Student.objects.count()
-    total_absent_today = Absence.objects.filter(date=today).count()
-    total_present_today = total_students - total_absent_today
-    attendance_percent = round((total_present_today / total_students) * 100, 2) if total_students else 0
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            selected_date = today
+    else:
+        selected_date = today
 
-    # Department & Teacher stats
-    total_departments = Department.objects.count()
-    total_teachers = Teachers.objects.count()  # correctly counting assigned teachers
-
-    students = Student.objects.filter(department__in=departments)
-    department_stats = students.values('department__name').annotate(count=Count('id'))
-
-    # Department-wise student and teacher counts
-    departments = Department.objects.annotate(
-        students_count=Count('students'),           # students linked to this department
-        teachers_count=Count('teachers')   # teachers assigned via TeacherDepartment
+    # Department filter
+    dept_filter = request.GET.get('department')
+    absentees = Absence.objects.filter(
+        date=selected_date, student__is_active=True
+    ).select_related(
+        'student', 'student__department', 'marked_by'
     )
 
-    # Recent absentees with department info
-    recent_absentees = Absence.objects.filter(date=today).select_related('student', 'student__department')
+    if dept_filter:
+        absentees = absentees.filter(student__department_id=dept_filter)
 
-    # Optional: course stats (still useful)
-    # course_stats = Student.objects.values('course_name').annotate(count=Count('id')).order_by('course_name')
+    # For teachers, scope to their departments
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user
+        ).values_list('department_id', flat=True)
+        absentees = absentees.filter(student__department_id__in=teacher_dept_ids)
+
+    departments = Department.objects.filter(is_active=True)
 
     context = {
+        'absentees': absentees,
+        'selected_date': selected_date,
         'today': today,
-        'total_students': total_students,
-        'total_present_today': total_present_today,
-        'total_absent_today': total_absent_today,
-        'attendance_percent': attendance_percent,
-        'total_departments': total_departments,
-        'department_stats': department_stats,
-        'total_teachers': total_teachers,
         'departments': departments,
-        'recent_absentees': recent_absentees,
-        # 'course_stats': course_stats,
+        'selected_department': dept_filter,
+        'total_absent': absentees.count(),
     }
-
-    return render(request, 'attendance/dashboard.html', context)
-
+    return render(request, 'attendance/absentees.html', context)
 
 
-
-# @role_required(['ADMIN'])
-# def assign_teacher_department(request):
-#     if request.method == 'POST':
-#         form = AssignTeacherForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, "✅ Teacher assigned successfully!")
-#             return redirect('list_teachers')
-#     else:
-#         form = AssignTeacherForm()
-
-#     return render(request, 'attendance/assign_teacher_department.html', {'form': form})
-
-
-
-# @role_required(['TEACHER'])
-# def teacher_dashboard(request):
-#     teacher = request.user
-#     today = timezone.now().date()
-
-#     # Get departments assigned to this teacher
-#     assigned_departments = TeacherDepartment.objects.filter(teacher=teacher)
-#     departments = [td.department for td in assigned_departments]
-
-#     # Filter students by teacher's departments only
-#     students = Student.objects.filter(department__in=departments)
-
-#     # Total students in teacher's departments
-#     total_students = students.count()
-
-#     # Today's absences
-#     absences_today = Absence.objects.filter(date=today, student__in=students)
-#     total_absent_today = absences_today.count()
-
-#     # Total present today
-#     total_present_today = total_students - total_absent_today
-
-#     # Attendance percentage
-#     attendance_percent = round((total_present_today / total_students) * 100, 2) if total_students else 0
-
-#     # Course distribution within teacher's departments
-#     course_stats = students.values('course_name').annotate(count=Count('id'))
-
-#     # Recent absentees today
-#     recent_absentees = absences_today.select_related('student')
-
-#     # Check if teacher is class teacher for each department
-#     class_teacher_departments = assigned_departments.filter(is_class_teacher=True)
-
-#     context = {
-#         'today': today,
-#         'total_students': total_students,
-#         'total_present_today': total_present_today,
-#         'total_absent_today': total_absent_today,
-#         'attendance_percent': attendance_percent,
-#         'course_stats': course_stats,
-#         'recent_absentees': recent_absentees,
-#         'departments': departments,
-#         'class_teacher_departments': class_teacher_departments,
-#     }
-
-#     return render(request, 'attendance/teacher_dashboard.html', context)
-
-
-
-# ----------------------
-# Department Views
-# ----------------------
-# @role_required(['ADMIN'])
-# def add_department(request):
-#     if request.method == 'POST':
-#         form = DepartmentForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, "✅ Department added successfully!")
-#             return redirect('list_departments')
-#     else:
-#         form = DepartmentForm()
-#     return render(request, 'attendance/add_department.html', {'form': form})
-
-# @role_required(['ADMIN'])
-# def list_departments(request):
-#     departments = Department.objects.all()
-#     return render(request, 'attendance/list_departments.html', {'departments': departments})
-
-
-
-
-# # ----------------------
-# # Teacher Views
-# # ----------------------
-# @role_required(['ADMIN'])
-# def add_teacher(request):
-#     if request.method == 'POST':
-#         form = TeacherCreationForm(request.POST)
-#         if form.is_valid():
-#             form.save()  # Saves User + TeacherDepartment
-#             messages.success(request, "✅ Teacher added successfully!")
-#             return redirect('list_teachers')
-#     else:
-#         form = TeacherCreationForm()
-#     return render(request, 'attendance/add_teacher.html', {'form': form})
-
-# @role_required(['ADMIN'])
-# def list_teachers(request):
-#     # List teachers along with assigned department
-#     teachers = TeacherDepartment.objects.select_related('teacher', 'department').all()
-#     return render(request, 'attendance/list_teachers.html', {'teachers': teachers})
-
-
-
+# ──────────────────────────────────────────────
+# Students List
+# ──────────────────────────────────────────────
+@role_required(['ADMIN', 'TEACHER'])
 def students_list(request):
-    query = request.GET.get('q')
-    department_filter = request.GET.get('department')
+    """List students with search, department filter, and pagination."""
+    query = request.GET.get('q', '')
+    dept_filter = request.GET.get('department', '')
 
-    students = Student.objects.select_related('department').all().order_by('id')
+    students = Student.objects.filter(is_active=True).select_related('department')
 
-    # 🔎 Search
+    # Teachers see only their department's students
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user
+        ).values_list('department_id', flat=True)
+        students = students.filter(department_id__in=teacher_dept_ids)
+
+    # Search
     if query:
         students = students.filter(
             Q(student_name__icontains=query) |
             Q(roll_number__icontains=query)
         )
 
-    # 🏫 Department Filter
-    if department_filter:
-        students = students.filter(department_id=department_filter)
+    # Department filter
+    if dept_filter:
+        students = students.filter(department_id=dept_filter)
 
-    # 📚 Get distinct departments
-    departments = Department.objects.all()
+    students = students.order_by('department__name', 'roll_number')
 
-    # 📄 Pagination
-    paginator = Paginator(students, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # Pagination
+    paginator = Paginator(students, 15)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    departments = Department.objects.filter(is_active=True)
 
     context = {
         'page_obj': page_obj,
         'departments': departments,
-        'selected_department': department_filter,
-        'search_query': query
+        'selected_department': dept_filter,
+        'search_query': query,
+        'total_count': paginator.count,
     }
-
     return render(request, 'attendance/students_list.html', context)
 
 
-
-
-def edit_attendance(request):
-    today = timezone.now().date()
-
-    students = Student.objects.all().order_by('id')
-    absentees = Absence.objects.filter(date=today)
-
-    absent_student_ids = absentees.values_list('student_id', flat=True)
-
-    if request.method == "POST":
-        student_id = request.POST.get("student_id")
-        action = request.POST.get("action")
-
-        student = Student.objects.get(id=student_id)
-
-        if action == "mark_absent":
-            Absence.objects.get_or_create(
-                student=student,
-                date=today
-            )
-
-        elif action == "mark_present":
-            Absence.objects.filter(
-                student=student,
-                date=today
-            ).delete()
-
-        return redirect('edit_attendance')
-
-    context = {
-        'students': students,
-        'absent_student_ids': absent_student_ids,
-        'today': today
-    }
-
-    return render(request, 'attendance/edit_attendance.html', context)
-
-
-
-
+# ──────────────────────────────────────────────
+# Student Edit / Delete
+# ──────────────────────────────────────────────
+@role_required(['ADMIN', 'TEACHER'])
 def edit_student(request, pk):
+    """Edit a student's details via ModelForm."""
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == "POST":
-        student.student_name = request.POST.get("student_name")
-        student.roll_number = request.POST.get("roll_number")
-        student.department = request.POST.get("department")
-        student.save()
+        form = StudentEditForm(request.POST, instance=student)
+        if form.is_valid():
+            student = form.save()
+            # Ensure User account is synced
+            from .services import sync_student_user
+            sync_student_user(student)
+            
+            messages.success(request, f"Student {student.student_name} updated successfully!")
+            return redirect('students_list')
+    else:
+        form = StudentEditForm(instance=student)
+
+    return render(request, 'attendance/edit_student.html', {
+        'form': form,
+        'student': student,
+    })
+
+
+@role_required(['ADMIN', 'TEACHER'])
+def reset_student_password(request, pk):
+    """Reset a student's password back to the default format: firstname@YearofBirth (POST-only)."""
+    student = get_object_or_404(Student, pk=pk)
+    
+    # Teachers can only reset passwords for students in their department
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(teacher=request.user).values_list('department_id', flat=True)
+        if student.department_id not in teacher_dept_ids:
+            messages.error(request, "You do not have permission to reset this student's password.")
+            return redirect('students_list')
+
+    first_name = student.student_name.split()[0] if student.student_name else "student"
+    default_pwd = f"{first_name.lower()}@{student.date_of_birth.year}" if student.date_of_birth else None
+
+    if request.method == 'POST':
+        if not student.date_of_birth:
+            messages.error(request, f"Cannot reset password for {student.student_name} because Date of Birth is missing.")
+        else:
+            from .services import sync_student_user
+            sync_student_user(student, password_raw=default_pwd)
+            messages.success(request, f"Password for {student.student_name} reset to: {default_pwd}")
+            
         return redirect('students_list')
 
-    return render(request, 'attendance/edit_student.html', {'student': student})
+    return render(request, 'attendance/reset_password_confirm.html', {
+        'student': student,
+        'default_pwd': default_pwd,
+    })
 
 
-def delete_student(request, pk):
+@role_required(['ADMIN', 'TEACHER'])
+def change_student_password(request, pk):
+    """Manually set a student's password."""
     student = get_object_or_404(Student, pk=pk)
-    student.delete()
-    return redirect('students_list')
+    
+    # Teachers can only change passwords for students in their department
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(teacher=request.user).values_list('department_id', flat=True)
+        if student.department_id not in teacher_dept_ids:
+            messages.error(request, "You do not have permission to change this student's password.")
+            return redirect('students_list')
+
+    if request.method == 'POST':
+        form = StudentPasswordChangeForm(request.POST)
+        if form.is_valid():
+            from .services import sync_student_user
+            new_pwd = form.cleaned_data['new_password']
+            sync_student_user(student, password_raw=new_pwd)
+            messages.success(request, f"Password for {student.student_name} updated successfully!")
+            return redirect('students_list')
+    else:
+        form = StudentPasswordChangeForm()
+
+    return render(request, 'attendance/change_student_password.html', {
+        'form': form,
+        'student': student,
+    })
+
+
+@role_required(['ADMIN'])
+def delete_student(request, pk):
+    """Soft-delete a student (POST-only)."""
+    student = get_object_or_404(Student, pk=pk)
+
+    if request.method == 'POST':
+        student.is_active = False
+        student.save()
+        messages.success(request, "Student removed successfully!")
+        return redirect('students_list')
+
+    return render(request, 'attendance/delete_confirm.html', {
+        'object': student,
+        'object_type': 'Student',
+        'cancel_url': 'students_list',
+    })

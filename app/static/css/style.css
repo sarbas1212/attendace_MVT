@@ -1,0 +1,445 @@
+/* ══════════════════════════════════════════════
+   Attendance Pro — Custom Stylesheet
+   Professional ERP-grade UI with Bootstrap 5.3
+   ══════════════════════════════════════════════ */
+
+:root {
+    --sidebar-width: 260px;
+    --sidebar-bg: #1a1d23;
+    --sidebar-text: #a8adb7;
+    --sidebar-active: #4f8cff;
+    --sidebar-hover-bg: #24272e;
+    --topbar-height: 60px;
+    --brand-primary: #4f8cff;
+    --brand-success: #2ecc71;
+    --brand-danger: #e74c3c;
+    --brand-warning: #f39c12;
+    --brand-info: #17a2b8;
+    --bg-main: #f0f2f5;
+    --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Global ──────────────────────────────────────── */
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background-color: var(--bg-main);
+    overflow-x: hidden;
+}
+
+/* ── Sidebar ─────────────────────────────────────── */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    z-index: 1050;
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar .brand {
+    padding: 20px 24px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    letter-spacing: 0.5px;
+}
+
+.sidebar .brand i {
+    color: var(--brand-primary);
+    margin-right: 8px;
+}
+
+.sidebar .nav-section {
+    padding: 16px 0 8px 24px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+}
+
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    color: var(--sidebar-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.sidebar .nav-link:hover {
+    background: var(--sidebar-hover-bg);
+    color: #fff;
+}
+
+.sidebar .nav-link.active {
+    background: var(--sidebar-hover-bg);
+    color: var(--brand-primary);
+    border-left-color: var(--brand-primary);
+}
+
+.sidebar .nav-link i {
+    font-size: 1.1rem;
+    width: 22px;
+    text-align: center;
+}
+
+.sidebar .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ── Main Content ────────────────────────────────── */
+.main-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: margin-left 0.3s ease;
+}
+
+.topbar {
+    height: var(--topbar-height);
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    position: sticky;
+    top: 0;
+    z-index: 1040;
+}
+
+.topbar .page-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #1a1d23;
+    margin: 0;
+}
+
+.topbar .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.topbar .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--brand-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.content-area {
+    padding: 24px 28px;
+}
+
+/* ── Stat Cards ──────────────────────────────────── */
+.stat-card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.stat-card .stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-card .stat-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* ── Cards ───────────────────────────────────────── */
+.card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+}
+
+.card-header {
+    border-radius: 14px 14px 0 0 !important;
+    font-weight: 600;
+}
+
+/* ── Tables ──────────────────────────────────────── */
+.table-card .table {
+    margin-bottom: 0;
+}
+
+.table-card .table thead th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #4b5563;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(79, 140, 255, 0.04);
+}
+
+/* ── Absent Row Highlight ────────────────────────── */
+.row-absent {
+    background-color: rgba(231, 76, 60, 0.08) !important;
+}
+
+.row-absent:hover {
+    background-color: rgba(231, 76, 60, 0.14) !important;
+}
+
+/* ── Progress Bar ────────────────────────────────── */
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.8s ease;
+}
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 8px 18px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
+
+.btn-primary:hover {
+    background-color: #3d7ae6;
+    border-color: #3d7ae6;
+    transform: translateY(-1px);
+}
+
+/* ── Quick Action Buttons ────────────────────────── */
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 12px;
+    border-radius: 14px;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    font-weight: 500;
+    font-size: 0.85rem;
+    gap: 8px;
+    border: 1px solid transparent;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.quick-action-btn i {
+    font-size: 1.6rem;
+}
+
+/* ── Alerts ──────────────────────────────────────── */
+.alert {
+    border-radius: 10px;
+    border: none;
+    font-weight: 500;
+}
+
+/* ── Badge ───────────────────────────────────────── */
+.badge {
+    border-radius: 6px;
+    font-weight: 600;
+    padding: 5px 10px;
+}
+
+/* ── Login Page ──────────────────────────────────── */
+.login-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1d23 0%, #2c3e50 50%, #4f8cff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card {
+    width: 420px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border: none;
+}
+
+.login-card .card-header {
+    background: linear-gradient(135deg, var(--brand-primary), #3d7ae6);
+    padding: 32px;
+    text-align: center;
+    border: none;
+}
+
+.login-card .card-header h3 {
+    margin: 0;
+    color: #fff;
+    font-weight: 700;
+}
+
+.login-card .card-header p {
+    margin: 8px 0 0;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.9rem;
+}
+
+.login-card .card-body {
+    padding: 32px;
+    background: #fff;
+}
+
+/* ── Mobile Responsive ───────────────────────────── */
+.sidebar-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    color: #1a1d23;
+    cursor: pointer;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1045;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .sidebar-overlay.show {
+        display: block;
+    }
+    .main-content {
+        margin-left: 0;
+    }
+    .sidebar-toggle {
+        display: inline-block;
+    }
+    .content-area {
+        padding: 16px;
+    }
+    .stat-card .stat-value {
+        font-size: 1.4rem;
+    }
+}
+
+/* ── Print Styles ────────────────────────────────── */
+@media print {
+    .sidebar,
+    .topbar,
+    .no-print,
+    .sidebar-overlay,
+    .btn {
+        display: none !important;
+    }
+    .main-content {
+        margin-left: 0 !important;
+    }
+    .content-area {
+        padding: 0 !important;
+    }
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    body {
+        background: #fff !important;
+    }
+    .print-header {
+        display: block !important;
+    }
+}
+
+.print-header {
+    display: none;
+}
+
+/* ── Scrollbar ───────────────────────────────────── */
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+
+/* ── Student Portal ──────────────────────────────── */
+.student-portal-card {
+    border-radius: 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+}
+
+.student-portal-card .stat-badge {
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.student-portal-card .stat-badge h2 {
+    font-size: 2.2rem;
+    font-weight: 800;
+}

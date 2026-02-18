@@ -1,36 +1,71 @@
-{% extends 'attendance/base.html' %}
-{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
 
-<div class="container vh-100 d-flex align-items-center justify-content-center">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Attendance Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+</head>
 
-    <div class="card shadow-lg border-0" style="width: 400px;">
-        <div class="card-header bg-primary text-white text-center">
-            <h4>Login</h4>
+<body class="login-page">
+
+    <div class="login-card card">
+        <div class="card-header">
+            <div style="font-size: 2.5rem; margin-bottom: 8px;">
+                <i class="bi bi-mortarboard-fill"></i>
+            </div>
+            <h3>Attendance Pro</h3>
+            <p>Sign in to continue</p>
         </div>
 
-        <div class="card-body p-4">
+        <div class="card-body">
+            {% if form.errors %}
+            <div class="alert alert-danger py-2" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Invalid username or password. Please try again.
+            </div>
+            {% endif %}
 
             <form method="post">
                 {% csrf_token %}
 
                 <div class="mb-3">
-                    <label class="form-label">Username</label>
-                    {{ form.username }}
+                    <label class="form-label fw-semibold" for="id_username">
+                        <i class="bi bi-person me-1"></i> Username
+                    </label>
+                    <input type="text" name="username" id="id_username" class="form-control form-control-lg"
+                        placeholder="Enter your username" autofocus required>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    {{ form.password }}
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-semibold mb-0" for="id_password">
+                            <i class="bi bi-lock me-1"></i> Password
+                        </label>
+                        <a href="{% url 'password_reset' %}" class="text-decoration-none small">Forgot Password?</a>
+                    </div>
+                    <input type="password" name="password" id="id_password" class="form-control form-control-lg"
+                        placeholder="Enter your password" required>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">
-                    Login
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
                 </button>
             </form>
 
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Attendance Management System v2.0
+                </small>
+            </div>
         </div>
     </div>
 
-</div>
+</body>
 
-{% endblock %}
+</html>

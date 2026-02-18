@@ -1,100 +1,133 @@
 {% extends 'attendance/base.html' %}
+
+{% block title %}Absentees — Attendance Pro{% endblock %}
+{% block nav_absentees %}active{% endblock %}
+{% block page_title %}Absentees Report{% endblock %}
+
 {% block content %}
+<!-- Print Header (only visible in print) -->
+<div class="print-header text-center mb-4">
+    <h3 class="fw-bold">Attendance Pro — Absentees Report</h3>
+    <p class="text-muted">Date: {{ selected_date|date:"d M Y (l)" }}</p>
+    <hr>
+</div>
 
-<div class="container mt-5">
+<!-- Filters -->
+<div class="card mb-4 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i> Date
+                </label>
+                <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-building me-1"></i> Department
+                </label>
+                <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-dark w-100" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Print
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="mb-1">Absentees Report</h3>
-            <span class="badge bg-danger fs-6">
-                {{ today }}
-            </span>
-        </div>
-
-        <div>
-            <button onclick="window.print()" class="btn btn-outline-primary me-2">
-                🖨 Print
-            </button>
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
-                Dashboard
-            </a>
+<!-- Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card text-center py-2">
+            <div class="card-body py-2">
+                <div class="fw-bold fs-4 text-danger">{{ total_absent }}</div>
+                <small class="text-muted text-uppercase fw-semibold">Total Absent</small>
+            </div>
         </div>
     </div>
-
-    <!-- Summary Card -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body text-center">
-            <h5 class="text-muted">Total Absentees Today</h5>
-            <h2 class="text-danger fw-bold">
-                {{ absentees|length }}
-            </h2>
+    <div class="col-md-4">
+        <div class="card text-center py-2">
+            <div class="card-body py-2">
+                <div class="fw-bold fs-5">{{ selected_date|date:"d M Y" }}</div>
+                <small class="text-muted text-uppercase fw-semibold">{{ selected_date|date:"l" }}</small>
+            </div>
         </div>
     </div>
+    <div class="col-md-4">
+        <div class="card text-center py-2">
+            <div class="card-body py-2">
+                {% if selected_date == today %}
+                <span class="badge bg-success fs-6">Today</span>
+                {% else %}
+                <span class="badge bg-secondary fs-6">Historical</span>
+                {% endif %}
+                <br>
+                <small class="text-muted text-uppercase fw-semibold">Report Type</small>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Table Card -->
-    <div class="card shadow-lg border-0">
-        <div class="card-body p-0">
-
+<!-- Absentees Table -->
+<div class="card table-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h6 class="fw-semibold mb-0">
+            <i class="bi bi-person-x-fill text-danger me-2"></i>
+            Absentees — {{ selected_date|date:"d M Y" }}
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        {% if absentees %}
+        <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead class="table-danger text-center">
+                <thead>
                     <tr>
-                        <th>Sl No</th>
-                        <th class="text-start">Student Name</th>
+                        <th>#</th>
+                        <th>Student Name</th>
                         <th>Roll Number</th>
-                        <th>Course</th>
-                        <th>Marked Time</th>
+                        <th>Department</th>
+                        <th>Reason</th>
+                        <th class="no-print">Marked By</th>
                     </tr>
                 </thead>
                 <tbody>
-
                     {% for absence in absentees %}
-                    <tr class="align-middle text-center">
+                    <tr class="row-absent">
                         <td>{{ forloop.counter }}</td>
-                        <td class="text-start fw-semibold">
-                            {{ absence.student.student_name }}
-                        </td>
+                        <td class="fw-medium">{{ absence.student.student_name }}</td>
                         <td>{{ absence.student.roll_number }}</td>
-                        <td>{{ absence.student.department }}</td>
-                        <td>
-                            {{ absence.date_time|date:"h:i A" }}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center p-4">
-                            <div class="text-success fs-5">
-                                🎉 No absentees today!
-                            </div>
+                        <td>{{ absence.student.department.name }}</td>
+                        <td>{{ absence.reason|default:"—" }}</td>
+                        <td class="no-print">
+                            {% if absence.marked_by %}
+                            {{ absence.marked_by.get_full_name|default:absence.marked_by.username }}
+                            {% else %}
+                            —
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
-
                 </tbody>
             </table>
-
         </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-emoji-smile fs-1 text-success"></i>
+            <p class="fw-semibold mt-2 mb-0">No absentees for this date!</p>
+        </div>
+        {% endif %}
     </div>
-
-    <!-- Footer Action -->
-    <div class="text-center mt-4">
-        <a href="{% url 'attendance_list' %}" class="btn btn-success btn-lg">
-            Take Attendance Again
-        </a>
-    </div>
-
 </div>
-
-<!-- Print Styling -->
-<style>
-@media print {
-    button, a {
-        display: none !important;
-    }
-    body {
-        background: white !important;
-    }
-}
-</style>
-
 {% endblock %}

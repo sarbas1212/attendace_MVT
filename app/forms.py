@@ -1,55 +1,52 @@
+"""
+app/forms.py
+Forms for the core attendance module.
+"""
 from django import forms
-from accounts.models import User
+from departments.models import Department
+from .models import Student
 
 
 class UploadFileForm(forms.Form):
+    """File upload form for Excel/CSV student import."""
     file = forms.FileField(
-        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx,.xls,.csv'}),
+        help_text="Accepted formats: .xlsx, .xls, .csv",
     )
 
-# class TeacherCreationForm(forms.ModelForm):
-#     password = forms.CharField(widget=forms.PasswordInput, required=True)
-#     department = forms.ModelChoiceField(queryset=Department.objects.all(), required=True)
 
-#     class Meta:
-#         model = User
-#         fields = ['username', 'first_name', 'last_name', 'email', 'password']
+class StudentEditForm(forms.ModelForm):
+    """Form for editing student details."""
+    class Meta:
+        model = Student
+        fields = ['student_name', 'roll_number', 'department', 'email', 'date_of_birth', 'parent_phone']
+        widgets = {
+            'student_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'roll_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'parent_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}),
+        }
 
-#     def save(self, commit=True):
-#         # Create User
-#         user = super().save(commit=False)
-#         user.set_password(self.cleaned_data['password'])
-#         user.role = 'TEACHER'
-#         if commit:
-#             user.save()
-#             # Assign Department
-#             TeacherDepartment.objects.create(
-#                 teacher=user,
-#                 department=self.cleaned_data['department']
-#             )
-#         return user
 
-# class DepartmentForm(forms.ModelForm):
-#     class Meta:
-#         model = Department
-#         fields = ['name', 'code']
+class StudentPasswordChangeForm(forms.Form):
+    """Form for teachers/admins to manually set a student's password."""
+    new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter new password'}),
+        label="New Password",
+        min_length=6,
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm new password'}),
+        label="Confirm New Password",
+        min_length=6,
+    )
 
-# class AssignTeacherForm(forms.ModelForm):
-#     is_class_teacher = forms.BooleanField(required=False, label="Assign as Class Teacher")
-
-#     class Meta:
-#         model = TeacherDepartment
-#         fields = ['teacher', 'department', 'is_class_teacher']
-
-#     def clean(self):
-#         cleaned_data = super().clean()
-#         teacher = cleaned_data.get('teacher')
-#         department = cleaned_data.get('department')
-#         is_class_teacher = cleaned_data.get('is_class_teacher')
-
-#         if is_class_teacher:
-#             # Check if department already has a class teacher
-#             if TeacherDepartment.objects.filter(department=department, is_class_teacher=True).exists():
-#                 raise forms.ValidationError(f"{department.name} already has a class teacher assigned.")
-
-#         return cleaned_data
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("new_password")
+        confirm = cleaned_data.get("confirm_password")
+        if password and confirm and password != confirm:
+            self.add_error('confirm_password', "Passwords do not match.")
+        return cleaned_data

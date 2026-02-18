@@ -1,87 +1,79 @@
 {% extends 'attendance/base.html' %}
+
+{% block title %}Teachers — Attendance Pro{% endblock %}
+{% block nav_teachers %}active{% endblock %}
+{% block page_title %}Teachers{% endblock %}
+
 {% block content %}
-<div class="container my-5">
-
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-primary">Teachers</h3>
-        <a href="{% url 'add_teacher' %}" class="btn btn-success shadow-sm px-4 py-2">
-            <i class="bi bi-person-plus-fill me-2"></i>Add Teacher
-        </a>
+<div class="card table-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h6 class="fw-semibold mb-0">
+            <i class="bi bi-person-badge-fill text-secondary me-2"></i>
+            All Teachers
+        </h6>
+        <div class="d-flex gap-2">
+            <a href="{% url 'assign_teacher_department' %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-link-45deg me-1"></i> Assign Dept
+            </a>
+            <a href="{% url 'add_teacher' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Add Teacher
+            </a>
+        </div>
     </div>
-
-    {% if teachers %}
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table align-middle mb-0 bg-white">
-            <thead class="bg-dark text-white">
-                <tr>
-                    <th>#</th>
-                    <th>Username</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Department</th>
-                    <th>Subject</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for teacher in teachers %}
-                <tr class="hover-shadow">
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ teacher.username }}</td>
-                    <td>{{ teacher.get_full_name }}</td>
-                    <td>{{ teacher.email }}</td>
-                    <td>
-                        {% if teacher.department_name %}
-                            {{ teacher.department_name }}
-                        {% else %}
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Subject</th>
+                        <th>Class Teacher</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for teacher in teachers %}
+                    <tr>
+                        <td class="text-muted">{{ forloop.counter }}</td>
+                        <td class="fw-medium">{{ teacher.get_full_name|default:teacher.username }}</td>
+                        <td>{{ teacher.username }}</td>
+                        <td class="text-muted">{{ teacher.email|default:"—" }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ teacher.department_name }}</span>
+                        </td>
+                        <td>{{ teacher.subject_name }}</td>
+                        <td class="text-center">
+                            {% if teacher.is_class_teacher_flag %}
+                            <span class="badge bg-success"><i class="bi bi-star-fill me-1"></i>Yes</span>
+                            {% else %}
                             <span class="text-muted">—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if teacher.teachers_record %}
-                            {{ teacher.teachers_record.subject }}
-                        {% else %}
-                            <span class="text-muted">—</span>
-                        {% endif %}
-                    </td>
-                    <td class="d-flex gap-2">
-                        <a href="{% url 'edit_teacher' teacher.pk %}" class="btn btn-sm btn-warning shadow-sm">
-                            <i class="bi bi-pencil-square"></i> Edit
-                        </a>
-                        <form method="post" action="{% url 'delete_teacher' teacher.pk %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger shadow-sm"
-                                onclick="return confirm('Are you sure you want to delete this teacher?');">
-                                <i class="bi bi-trash-fill"></i> Delete
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'edit_teacher' teacher.pk %}" class="btn btn-sm btn-outline-primary me-1"
+                                title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'delete_teacher' teacher.pk %}" class="btn btn-sm btn-outline-danger"
+                                title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            No teachers yet. <a href="{% url 'add_teacher' %}">Add one</a>.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    {% else %}
-    <div class="alert alert-info text-center shadow-sm" role="alert">
-        No teachers found. Click "Add Teacher" to create a new record.
-    </div>
-    {% endif %}
-
 </div>
-
-<style>
-/* Hover effect for table rows */
-.hover-shadow:hover {
-    background-color: #f8f9fa;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
-}
-
-/* Rounded table */
-.table-responsive {
-    border-radius: 12px;
-    overflow: hidden;
-}
-</style>
 {% endblock %}

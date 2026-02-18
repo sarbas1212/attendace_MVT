@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Attendance — Attendance Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+</head>
+
+<body style="background: var(--bg-main);">
+
+    <!-- Minimal Top Navbar for Students -->
+    <nav class="navbar" style="background:#1a1d23;">
+        <div class="container">
+            <span class="navbar-brand text-white fw-bold">
+                <i class="bi bi-mortarboard-fill me-2" style="color:var(--brand-primary);"></i>
+                Attendance Pro
+            </span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-white-50 small">
+                    Welcome, <strong class="text-white">{{ user.get_full_name|default:user.username }}</strong>
+                </span>
+                <form method="post" action="{% url 'logout' %}" class="mb-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-box-arrow-left me-1"></i> Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if student %}
+        <!-- Student Info Card -->
+        <div class="card student-portal-card mb-4">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center gap-3 mb-3 mb-md-0">
+                            <div
+                                style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;">
+                                {{ student.student_name|make_list|first|upper }}
+                            </div>
+                            <div>
+                                <h4 class="fw-bold mb-0">{{ student.student_name }}</h4>
+                                <div class="opacity-75">
+                                    <i class="bi bi-hash me-1"></i>{{ student.roll_number }}
+                                    &nbsp;|&nbsp;
+                                    <i class="bi bi-building me-1"></i>{{ student.department.name }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <div class="stat-badge">
+                                    <h2>{{ attendance_percent }}%</h2>
+                                    <small>Attendance</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-badge">
+                                    <h2>{{ days_present }}</h2>
+                                    <small>Present</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-badge">
+                                    <h2>{{ total_absences }}</h2>
+                                    <small>Absent</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-semibold mb-0">Your Attendance Progress</h6>
+                    <span
+                        class="badge {% if attendance_percent >= 75 %}bg-success{% elif attendance_percent >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ attendance_percent }}%
+                    </span>
+                </div>
+                <div class="progress" style="height: 24px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated
+                            {% if attendance_percent >= 75 %}bg-success{% elif attendance_percent >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                        style="width: {{ attendance_percent }}%;">
+                        {{ attendance_percent }}%
+                    </div>
+                </div>
+                <div class="mt-2">
+                    {% if attendance_percent >= 75 %}
+                    <small class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Good attendance! Keep it
+                        up.</small>
+                    {% elif attendance_percent >= 50 %}
+                    <small class="text-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>Your attendance needs
+                        improvement.</small>
+                    {% else %}
+                    <small class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Critical! Your
+                        attendance is below 50%.</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-calendar-check fs-1 text-primary mb-2"></i>
+                        <h3 class="fw-bold">{{ total_marked_days }}</h3>
+                        <div class="text-muted small text-uppercase fw-semibold">Total School Days</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-check-circle fs-1 text-success mb-2"></i>
+                        <h3 class="fw-bold text-success">{{ days_present }}</h3>
+                        <div class="text-muted small text-uppercase fw-semibold">Days Present</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-x-circle fs-1 text-danger mb-2"></i>
+                        <h3 class="fw-bold text-danger">{{ total_absences }}</h3>
+                        <div class="text-muted small text-uppercase fw-semibold">Days Absent</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Absence History -->
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-semibold mb-0">
+                    <i class="bi bi-clock-history text-secondary me-2"></i>Absence History
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if absence_history %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for absence in absence_history %}
+                            <tr class="row-absent">
+                                <td>{{ forloop.counter }}</td>
+                                <td class="fw-medium">{{ absence.date|date:"d M Y" }}</td>
+                                <td>{{ absence.date|date:"l" }}</td>
+                                <td>{{ absence.reason|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-trophy-fill fs-1 text-warning"></i>
+                    <p class="fw-semibold mt-2 mb-0">Perfect attendance! No absences recorded.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+        <!-- No Student Record -->
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-exclamation-circle fs-1 text-warning"></i>
+                <h5 class="fw-bold mt-3">No Student Record Found</h5>
+                <p class="text-muted">Your user account is not linked to a student record. Please contact the
+                    administrator to link your account.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,171 +1,165 @@
 {% extends 'attendance/base.html' %}
+
+{% block title %}Mark Attendance — Attendance Pro{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+
 {% block content %}
-
-<div class="container mt-5">
-
-    <div class="card shadow border-0">
-
-        <!-- Header -->
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Attendance Sheet</h4>
-            <a href="{% url 'dashboard' %}" class="btn btn-sm btn-light">Back</a>
-        </div>
-
-        <div class="card-body">
-
-            <!-- Toast Messages -->
-            <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="toast align-items-center text-white bg-success border-0 slide-in" role="alert" aria-live="assertive" aria-atomic="true">
-                            <div class="d-flex">
-                                <div class="toast-body d-flex align-items-center">
-                                    <span class="me-2"></span> {{ message }}
-                                </div>
-                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                            </div>
-                        </div>
+<!-- Filters -->
+<div class="card mb-4 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i> Date
+                </label>
+                <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"
+                    class="form-control">
+            </div>
+            {% if user.role == 'ADMIN' %}
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-building me-1"></i> Department
+                </label>
+                <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
                     {% endfor %}
-                {% endif %}
+                </select>
             </div>
-
-            <!-- Date Selection -->
-            <form method="get" class="mb-3 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <label class="mb-0"><strong>Select Date:</strong></label>
-                    <input type="date"
-                           name="date"
-                           value="{{ selected_date|date:'Y-m-d' }}"
-                           class="form-control"
-                           style="max-width: 200px;"
-                           required
-                           max="{{ today|date:'Y-m-d' }}">
-                    <button type="submit" class="btn btn-outline-primary btn-sm">Load</button>
-                </div>
-
-                <div class="p-2 border rounded bg-light text-dark">
-                    📅 <strong>{{ selected_date|date:"l, d M Y" }}</strong>
-                </div>
-            </form>
-
-            <!-- Bulk Buttons -->
-            <div class="mb-3">
-                <button type="button" class="btn btn-success btn-sm" onclick="markAll('present')">✔ Mark All Present</button>
-                <button type="button" class="btn btn-danger btn-sm" onclick="markAll('absent')">✖ Mark All Absent</button>
+            {% endif %}
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
             </div>
+        </form>
+    </div>
+</div>
 
-            <!-- Attendance Table -->
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
-
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle text-center">
-                        <thead class="table-light">
-                            <tr>
-                                <th>#</th>
-                                <th class="text-start">Name</th>
-                                <th>Roll</th>
-                                <th>Course</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for student in students %}
-                            <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td class="text-start">{{ student.student_name }}</td>
-                                <td>{{ student.roll_number }}</td>
-                                <td>{{ absence.student.department }}</td>
-                                <td>
-                                    <input type="hidden" name="status_{{ student.id }}" value="{% if student.id not in absent_ids %}present{% else %}absent{% endif %}">
-
-                                    <div class="status-cell text-center rounded-pill {% if student.id in absent_ids %}bg-danger text-white{% else %}bg-success text-white{% endif %}" 
-                                         style="cursor:pointer; min-width:60px; padding:4px 12px; font-size:0.85rem; font-weight:500;"
-                                         onclick="toggleStatus({{ student.id }}, this)">
-                                        {% if student.id in absent_ids %}Absent{% else %}Present{% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="text-end mt-3">
-                    <button type="submit" class="btn btn-primary px-4">💾 Save Attendance</button>
-                </div>
-            </form>
-
+<!-- Stats Bar -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center py-2">
+            <div class="card-body py-2">
+                <div class="fw-bold fs-5 text-primary">{{ stats.total }}</div>
+                <small class="text-muted text-uppercase fw-semibold">Total</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-2">
+            <div class="card-body py-2">
+                <div class="fw-bold fs-5 text-success">{{ stats.present }}</div>
+                <small class="text-muted text-uppercase fw-semibold">Present</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-2">
+            <div class="card-body py-2">
+                <div class="fw-bold fs-5 text-danger">{{ stats.absent }}</div>
+                <small class="text-muted text-uppercase fw-semibold">Absent</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-2">
+            <div class="card-body py-2">
+                <div class="fw-bold fs-5">{{ stats.percentage }}%</div>
+                <small class="text-muted text-uppercase fw-semibold">Attendance</small>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- JS -->
+<!-- Attendance Form -->
+<div class="card table-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h6 class="fw-semibold mb-0">
+            <i class="bi bi-calendar-check me-2"></i>
+            Attendance for {{ selected_date|date:"d M Y (l)" }}
+        </h6>
+        <span class="badge bg-dark">{{ students|length }} students</span>
+    </div>
+    <div class="card-body p-0">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th style="width:50px;">#</th>
+                            <th>Student Name</th>
+                            <th>Roll Number</th>
+                            <th>Department</th>
+                            <th style="width:200px;" class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr id="row-{{ student.id }}" class="{% if student.id in absent_ids %}row-absent{% endif %}">
+                            <td class="text-muted">{{ forloop.counter }}</td>
+                            <td class="fw-medium">{{ student.student_name }}</td>
+                            <td>{{ student.roll_number }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ student.department.name }}</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="status_{{ student.id }}"
+                                        id="present_{{ student.id }}" value="present" {% if student.id not in absent_ids %}checked{% endif %} onchange="updateRow({{ student.id }}, false)">
+                                    <label class="btn btn-outline-success btn-sm" for="present_{{ student.id }}">
+                                        <i class="bi bi-check-lg"></i> Present
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="status_{{ student.id }}"
+                                        id="absent_{{ student.id }}" value="absent" {% if student.id in absent_ids %}checked{% endif %} onchange="updateRow({{ student.id }}, true)">
+                                    <label class="btn btn-outline-danger btn-sm" for="absent_{{ student.id }}">
+                                        <i class="bi bi-x-lg"></i> Absent
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                No students found. Import students first.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if students %}
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Mark all students as Present or Absent, then save.
+                </small>
+                <button type="submit" class="btn btn-primary btn-lg px-5">
+                    <i class="bi bi-save me-2"></i> Save Attendance
+                </button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Initialize Bootstrap toasts
-    var toastElList = [].slice.call(document.querySelectorAll('.toast'));
-    toastElList.forEach(function (toastEl) {
-        var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-        toast.show();
-    });
-});
-
-// Toggle single status
-function toggleStatus(studentId, cell) {
-    let input = document.querySelector(`input[name="status_${studentId}"]`);
-    if (input.value === 'present') {
-        input.value = 'absent';
-        cell.classList.remove('bg-success');
-        cell.classList.add('bg-danger');
-        cell.textContent = 'Absent';
-    } else {
-        input.value = 'present';
-        cell.classList.remove('bg-danger');
-        cell.classList.add('bg-success');
-        cell.textContent = 'Present';
-    }
-}
-
-// Bulk mark all
-function markAll(type) {
-    document.querySelectorAll('.status-cell').forEach(cell => {
-        let studentId = cell.parentElement.parentElement.querySelector('input[type="hidden"]').name.split('_')[1];
-        if (type === 'present') {
-            cell.classList.remove('bg-danger');
-            cell.classList.add('bg-success');
-            cell.textContent = 'Present';
-            document.querySelector(`input[name="status_${studentId}"]`).value = 'present';
+    function updateRow(studentId, isAbsent) {
+        const row = document.getElementById('row-' + studentId);
+        if (isAbsent) {
+            row.classList.add('row-absent');
         } else {
-            cell.classList.remove('bg-success');
-            cell.classList.add('bg-danger');
-            cell.textContent = 'Absent';
-            document.querySelector(`input[name="status_${studentId}"]`).value = 'absent';
+            row.classList.remove('row-absent');
         }
-    });
-}
+    }
 </script>
-
-<!-- CSS -->
-<style>
-/* Hover effect for status cells */
-.status-cell:hover {
-    opacity: 0.85;
-    transform: scale(1.05);
-    transition: all 0.15s ease-in-out;
-}
-
-/* Toast slide-in animation */
-@keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-.toast.slide-in {
-    animation: slideInRight 0.4s ease-out;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-</style>
-
 {% endblock %}
