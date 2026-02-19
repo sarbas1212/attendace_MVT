@@ -3,15 +3,17 @@ attendance_pro/settings.py
 Django settings for attendance_pro project.
 """
 from pathlib import Path
+import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY — change SECRET_KEY in production
 SECRET_KEY = 'django-insecure-3^qq17npzpt4m2sq+^zlov@riut=br2)hgaro1i%d8!c(b%cnp'
 
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['.onrender.com']
 
 # ── Installed apps ────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -31,6 +33,7 @@ INSTALLED_APPS = [
 # ── Middleware ─────────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -60,10 +63,9 @@ WSGI_APPLICATION = 'attendance_pro.wsgi.application'
 
 # ── Database ──────────────────────────────────────────────────
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL')
+    )
 }
 
 # ── Password validation ──────────────────────────────────────
@@ -101,3 +103,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── Email backend for testing ───────────────────────────────
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

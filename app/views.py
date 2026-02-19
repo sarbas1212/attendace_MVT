@@ -19,6 +19,18 @@ from .models import Absence, Student
 from .forms import UploadFileForm, StudentEditForm, StudentPasswordChangeForm
 from .services import get_attendance_stats, import_students_from_file, mark_attendance_for_date
 
+from django.http import HttpResponseRedirect
+
+
+def index(request):
+    if request.user.is_authenticated:
+        if request.user.is_student:
+            return redirect('student_dashboard')
+        elif request.user.is_teacher:
+            return redirect('teacher_dashboard')
+        return redirect('dashboard')
+    return render(request, 'attendance/index.html')
+
 
 # ──────────────────────────────────────────────
 # Admin Dashboard

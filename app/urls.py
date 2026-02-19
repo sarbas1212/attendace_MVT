@@ -6,8 +6,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Dashboard
-    path('', views.dashboard, name='dashboard'),
+    path('', views.index, name='index'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    # # Dashboard
+    # path('', views.dashboard, name='dashboard'),
 
     # Student self-service
     path('my-attendance/', views.student_dashboard, name='student_dashboard'),
