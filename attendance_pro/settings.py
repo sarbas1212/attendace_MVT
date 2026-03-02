@@ -4,16 +4,14 @@ Django settings for attendance_pro project.
 """
 from pathlib import Path
 import os
-import dj_database_url
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY — change SECRET_KEY in production
 SECRET_KEY = 'django-insecure-3^qq17npzpt4m2sq+^zlov@riut=br2)hgaro1i%d8!c(b%cnp'
 
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # ── Installed apps ────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -28,18 +26,22 @@ INSTALLED_APPS = [
     'departments',
     'teachers',
     'app',
+    'reports',
 ]
 
 # ── Middleware ─────────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.EnforcePasswordChangeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    'accounts.middleware.RoleBasedAccessMiddleware',
+    'accounts.middleware.DisableCacheMiddleware'
 ]
 
 ROOT_URLCONF = 'attendance_pro.urls'
@@ -63,11 +65,11 @@ WSGI_APPLICATION = 'attendance_pro.wsgi.application'
 
 # ── Database ──────────────────────────────────────────────────
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL')
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
-
 # ── Password validation ──────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -107,6 +109,20 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'sarbasjb@gmail.com'
+EMAIL_HOST_PASSWORD = 'anmr rlmb zrzf gzuq' # Your 16-digit App Password
+DEFAULT_FROM_EMAIL = 'Attendance Pro <sarbasjb@gmail.com>'
 
 
+# settings.py
+ADMIN_REGISTRATION_CODE = "ATTENDANCE2026"
+
+
+
+# Set your country (e.g., 'US', 'IN', 'UK', 'CA')
+ERP_REGION = 'IN' 

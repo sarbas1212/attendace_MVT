@@ -14,53 +14,83 @@
 
 <body class="login-page">
 
-    <div class="login-card card">
-        <div class="card-header">
-            <div style="font-size: 2.5rem; margin-bottom: 8px;">
+    <div class="login-card card shadow-lg">
+        <div class="card-header text-center py-4 bg-white border-0">
+            <div class="text-primary" style="font-size: 3rem; margin-bottom: 8px;">
                 <i class="bi bi-mortarboard-fill"></i>
             </div>
-            <h3>Attendance Pro</h3>
-            <p>Sign in to continue</p>
+            <h3 class="fw-bold">Attendance Pro</h3>
+            <p class="text-muted small">Sign in to continue to your dashboard</p>
         </div>
 
-        <div class="card-body">
+        <div class="card-body px-4 pb-4">
+            <!-- Authentication Errors -->
             {% if form.errors %}
-            <div class="alert alert-danger py-2" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                Invalid username or password. Please try again.
+            <div class="alert alert-danger py-2 border-0 small shadow-sm mb-4" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    <div>
+                        <div class="fw-bold">Invalid username or password.</div>
+                        <div style="font-size: 0.75rem;">If you just registered, please check your email to activate your account.</div>
+                    </div>
+                </div>
             </div>
+            {% endif %}
+
+            <!-- System Messages (Success/Error from views) -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} py-2 border-0 small">
+                        {{ message }}
+                    </div>
+                {% endfor %}
             {% endif %}
 
             <form method="post">
                 {% csrf_token %}
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold" for="id_username">
+                    <label class="form-label fw-semibold small" for="id_username">
                         <i class="bi bi-person me-1"></i> Username
                     </label>
                     <input type="text" name="username" id="id_username" class="form-control form-control-lg"
-                        placeholder="Enter your username" autofocus required>
+                        placeholder="Enter your username" autofocus required style="font-size: 0.95rem;">
                 </div>
 
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold mb-0" for="id_password">
+                        <label class="form-label fw-semibold small mb-0" for="id_password">
                             <i class="bi bi-lock me-1"></i> Password
                         </label>
-                        <a href="{% url 'password_reset' %}" class="text-decoration-none small">Forgot Password?</a>
+                        <a href="{% url 'password_reset' %}" class="text-decoration-none small fw-semibold text-primary">
+                            <i class="bi bi-question-circle me-1"></i> Forgot Password?
+                        </a>
                     </div>
                     <input type="password" name="password" id="id_password" class="form-control form-control-lg"
-                        placeholder="Enter your password" required>
+                        placeholder="Enter your password" required style="font-size: 0.95rem;">
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100">
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
                     <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
                 </button>
             </form>
 
-            <div class="text-center mt-3">
-                <small class="text-muted">
-                    Attendance Management System v2.0
+            <!-- INITIAL SETUP LOGIC: Only visible if no Admin exists -->
+            {% if not admin_exists %}
+            <div class="mt-4 pt-3 border-top">
+                <div class="alert alert-info py-2 px-3 border-0 shadow-sm mb-3" style="font-size: 0.75rem; background-color: #e7f3ff; color: #0056b3;">
+                    <i class="bi bi-info-circle-fill me-2"></i> 
+                    <strong>Setup Mode:</strong> No administrator detected in the system.
+                </div>
+                <a href="{% url 'admin_register' %}" class="btn btn-outline-primary w-100 fw-bold py-2">
+                    <i class="bi bi-person-plus-fill me-2"></i> Register as Admin
+                </a>
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-4">
+                <small class="text-muted" style="font-size: 0.7rem;">
+                    Attendance Management System &bull; v2.1
                 </small>
             </div>
         </div>

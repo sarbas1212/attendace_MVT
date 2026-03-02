@@ -30,6 +30,8 @@
     </div>
 
     {% if user.is_authenticated and user.role != 'STUDENT' %}
+    
+    <!-- SECTION: MAIN -->
     <div class="nav-section">Main</div>
 
     {% if user.role == 'ADMIN' %}
@@ -51,6 +53,7 @@
         <i class="bi bi-person-x-fill"></i> Absentees
     </a>
 
+    <!-- SECTION: STUDENTS -->
     <div class="nav-section">Students</div>
     <a href="{% url 'students_list' %}" class="nav-link {% block nav_students %}{% endblock %}">
         <i class="bi bi-people-fill"></i> All Students
@@ -59,6 +62,7 @@
         <i class="bi bi-file-earmark-arrow-up-fill"></i> Import Students
     </a>
 
+    <!-- SECTION: MANAGEMENT (Admin Only) -->
     {% if user.role == 'ADMIN' %}
     <div class="nav-section">Management</div>
     <a href="{% url 'list_departments' %}" class="nav-link {% block nav_departments %}{% endblock %}">
@@ -68,6 +72,18 @@
         <i class="bi bi-person-badge-fill"></i> Teachers
     </a>
     {% endif %}
+
+    <!-- SECTION: REPORTS (Admin & Teacher) -->
+    <div class="nav-section">Reports</div>
+    <a href="{% url 'reports_hub' %}" class="nav-link {% block nav_reports %}{% endblock %}">
+        <i class="bi bi-bar-chart-line-fill"></i> ERP Reports Hub
+    </a>
+    {% if user.role != 'STUDENT' %}
+    <a href="{% url 'calendar' %}" class="nav-link {% block nav_calendar %}{% endblock %}">
+        <i class="bi bi-calendar3"></i> Calendar
+    </a>
+    {% endif %}
+
     {% endif %}
 
     <!-- Sidebar Footer -->

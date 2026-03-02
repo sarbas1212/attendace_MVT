@@ -2,21 +2,19 @@
 teachers/forms.py
 Forms for creating / editing teachers and assigning them to departments.
 """
+import string
+import secrets
 from django import forms
 from accounts.models import User
 from departments.models import Department
 from .models import TeacherAssignment
-
+from django.utils.crypto import get_random_string
 
 class TeacherCreationForm(forms.ModelForm):
     """
     Creates a new User with role=TEACHER and optionally assigns
     them to a department via TeacherAssignment.
     """
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
-        required=True,
-    )
     subject = forms.CharField(
         max_length=100,
         required=False,
@@ -34,7 +32,7 @@ class TeacherCreationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'password']
+        fields = ['username', 'first_name', 'last_name', 'email']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -42,10 +40,22 @@ class TeacherCreationForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("This email is already registered to another account.")
+        return email
+
+
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data['password'])
-        user.role = 'TEACHER'
+        
+        # Generate random secure password (10 chars)
+        temp_password = get_random_string(10, allowed_chars=string.ascii_letters + string.digits)
+        user.set_password(temp_password)
+        
+        user.role = User.Role.TEACHER
+        user.must_change_password = True
 
         if commit:
             user.save()
@@ -58,7 +68,7 @@ class TeacherCreationForm(forms.ModelForm):
                     department=department,
                     defaults={'subject': subject},
                 )
-        return user
+        return user, temp_password
 
 
 class AssignTeacherForm(forms.ModelForm):

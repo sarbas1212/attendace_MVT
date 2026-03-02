@@ -13,6 +13,8 @@ from app.models import Absence, Student
 from .forms import AssignTeacherForm, TeacherCreationForm
 from .models import TeacherAssignment
 
+from django.core.mail import send_mail
+from django.conf import settings
 
 # ──────────────────────────────────────────────
 # Teacher Dashboard
@@ -71,21 +73,42 @@ def teacher_dashboard(request):
 # ──────────────────────────────────────────────
 @role_required(['ADMIN'])
 def add_teacher(request):
-    """Create a new teacher user and optionally assign to a department."""
     if request.method == 'POST':
         form = TeacherCreationForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Teacher added successfully!")
+            # Capture both values from our custom save method
+            teacher_user, temp_password = form.save()
+            
+            # Send Email
+            subject = "Your Attendance System Account"
+            message = (
+                f"Hello {teacher_user.first_name},\n\n"
+                f"Your teacher account has been created.\n\n"
+                f"Login Details:\n"
+                f"Username: {teacher_user.username}\n"
+                f"Temporary Password: {temp_password}\n\n"
+                f"Please login and change your password immediately.\n"
+                f"Login URL: {request.build_absolute_uri('/accounts/login/')}\n\n"
+                f"Thank you."
+            )
+            
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [teacher_user.email],
+                    fail_silently=False,
+                )
+                messages.success(request, f"Teacher created and credentials emailed to {teacher_user.email}")
+            except Exception as e:
+                messages.warning(request, f"Teacher created, but email failed to send. Temp Password: {temp_password}")
+                
             return redirect('list_teachers')
     else:
         form = TeacherCreationForm()
-
-    return render(request, 'attendance/add_teacher.html', {
-        'form': form,
-        'title': 'Add Teacher',
-    })
-
+    
+    return render(request, 'attendance/add_teacher.html', {'form': form, 'title': 'Add Teacher'})
 
 @role_required(['ADMIN'])
 def edit_teacher(request, pk):

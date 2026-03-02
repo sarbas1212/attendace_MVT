@@ -27,4 +27,9 @@ urlpatterns = [
     path('students/<int:pk>/delete/', views.delete_student, name='delete_student'),
     path('students/<int:pk>/reset-password/', views.reset_student_password, name='reset_student_password'),
     path('students/<int:pk>/change-password/', views.change_student_password, name='change_student_password'),
+
+    path('calendar/', views.calendar_view, name='calendar'),
+
 ]
+
+

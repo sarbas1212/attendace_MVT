@@ -69,3 +69,15 @@ class Absence(models.Model):
 
     def __str__(self):
         return f"{self.student.student_name} — {self.date}"
+
+
+
+class AttendanceSession(models.Model):
+    """Officially records that attendance was taken for a department on a specific date."""
+    date = models.DateField(db_index=True)
+    department = models.ForeignKey('departments.Department', on_delete=models.CASCADE)
+    marked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('date', 'department')

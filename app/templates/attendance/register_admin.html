@@ -1,0 +1,77 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Initial Setup — Attendance Pro{% endblock %}
+
+{% block content %}
+<style>
+    /* Professional Clean Setup UI */
+    #sidebar, .sidebar, .topbar, .sidebar-overlay { display: none !important; }
+    .main-content { margin-left: 0 !important; width: 100% !important; min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; }
+    .content-area { padding: 0 !important; width: 100%; }
+    .setup-card { border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+</style>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-5">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-primary"><i class="bi bi-shield-lock-fill"></i> Attendance Pro</h2>
+                <p class="text-muted">System Administrator Setup</p>
+            </div>
+
+            <div class="card setup-card">
+                <div class="card-header bg-dark text-white p-4" style="border-radius: 15px 15px 0 0;">
+                    <h5 class="mb-0 fw-bold">Register Admin</h5>
+                    <p class="small mb-0 opacity-75">Only available when no admin exists.</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger small">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">First Name</label>
+                                {{ form.first_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Last Name</label>
+                                {{ form.last_name }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Username</label>
+                                {{ form.username }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Email Address</label>
+                                {{ form.email }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Password</label>
+                                {{ form.password }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Confirm</label>
+                                {{ form.confirm_password }}
+                            </div>
+                            
+                            <div class="col-12 border-top pt-3 mt-4">
+                                <label class="form-label small fw-bold text-danger">Secret Registration Code</label>
+                                {{ form.registration_code }}
+                                <div class="form-text small"><i class="bi bi-info-circle"></i> Check your <code>settings.py</code> for the code.</div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-dark btn-lg fw-bold">Initialize System</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -15,11 +15,15 @@ from accounts.decorators import role_required
 from accounts.models import User
 from departments.models import Department
 from teachers.models import TeacherAssignment
-from .models import Absence, Student
+from .models import Absence, AttendanceSession, Student
 from .forms import UploadFileForm, StudentEditForm, StudentPasswordChangeForm
 from .services import get_attendance_stats, import_students_from_file, mark_attendance_for_date
 
 from django.http import HttpResponseRedirect
+
+from .utils import is_working_day
+import holidays
+from django.conf import settings
 
 
 def index(request):
@@ -200,12 +204,11 @@ def import_students(request):
 def attendance_list(request):
     """
     Mark / view attendance for a given date.
-    Teachers see only students in their assigned departments.
-    Admin sees all students (with optional department filter).
+    Enforces 'Working Day' rules and creates 'Attendance Sessions'.
     """
     today = timezone.now().date()
 
-    # Build student queryset based on role
+    # 1. BUILD STUDENT QUERYSET (Role-based)
     if request.user.is_teacher:
         teacher_dept_ids = TeacherAssignment.objects.filter(
             teacher=request.user
@@ -216,60 +219,103 @@ def attendance_list(request):
     else:
         students = Student.objects.filter(is_active=True).select_related('department')
 
-    # Department filter (admin only)
+    # Department filter (Admin only)
     dept_filter = request.GET.get('department')
     if dept_filter:
         students = students.filter(department_id=dept_filter)
 
     students = students.order_by('department__name', 'roll_number')
 
-    # Handle selected date
+    # 2. HANDLE DATE SELECTION
     selected_date_str = request.GET.get('date') or request.POST.get('date')
     if selected_date_str:
         try:
             selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
         except ValueError:
             selected_date = today
+        # Prevent marking future attendance
         if selected_date > today:
             selected_date = today
     else:
         selected_date = today
 
-    # Handle POST (attendance submission)
+    # 3. REAL-TIME CALENDAR CHECK
+    is_workday, reason = is_working_day(selected_date)
+
+    # 4. HANDLE POST (Attendance Submission)
     if request.method == "POST":
+        # Block marking if it's a Sunday/Holiday
+        if not is_workday:
+            messages.error(request, f"Access Denied: Attendance cannot be recorded for a {reason}.")
+            return redirect(f"{request.path}?date={selected_date.strftime('%Y-%m-%d')}")
+
         absent_ids = set()
         for student in students:
             status = request.POST.get(f"status_{student.id}")
             if status == "absent":
                 absent_ids.add(student.id)
 
+        # A. Save Absences
         mark_attendance_for_date(students, absent_ids, selected_date, marked_by=request.user)
-        messages.success(request, f"Attendance marked for {selected_date.strftime('%d %b %Y')}!")
+
+        # B. CREATE ERP ATTENDANCE SESSION
+        # This record is what the system uses to calculate "Total Working Days"
+        if request.user.is_teacher:
+            # Teacher marks for all their assigned departments
+            my_depts = TeacherAssignment.objects.filter(teacher=request.user).values_list('department_id', flat=True)
+            for d_id in my_depts:
+                AttendanceSession.objects.update_or_create(
+                    date=selected_date, 
+                    department_id=d_id,
+                    defaults={'marked_by': request.user}
+                )
+        else:
+            # Admin marks for a specific department if filter is active
+            if dept_filter:
+                AttendanceSession.objects.update_or_create(
+                    date=selected_date, 
+                    department_id=dept_filter,
+                    defaults={'marked_by': request.user}
+                )
+            else:
+                # If admin marks 'All Students', find every dept in the current student list
+                affected_depts = students.values_list('department_id', flat=True).distinct()
+                for d_id in affected_depts:
+                    AttendanceSession.objects.update_or_create(
+                        date=selected_date, 
+                        department_id=d_id,
+                        defaults={'marked_by': request.user}
+                    )
+
+        messages.success(request, f"Attendance officially finalized for {selected_date.strftime('%d %b %Y')}")
         return redirect(f"{request.path}?date={selected_date.strftime('%Y-%m-%d')}")
 
-    # Get current absence records for the selected date
+    # 5. PREPARE CONTEXT DATA
     absent_ids = set(
         Absence.objects.filter(
             date=selected_date, student__in=students
         ).values_list('student_id', flat=True)
     )
 
-    # Stats for the selected date
-    stats = get_attendance_stats(students, selected_date)
-
-    departments = Department.objects.filter(is_active=True)
+    # Check if an official session exists for the departments currently being viewed
+    session_exists = AttendanceSession.objects.filter(
+        date=selected_date, 
+        department_id__in=students.values_list('department_id', flat=True)
+    ).exists()
 
     context = {
         'students': students,
         'absent_ids': absent_ids,
         'selected_date': selected_date,
         'today': today,
-        'stats': stats,
-        'departments': departments,
+        'is_workday': is_workday,
+        'holiday_reason': reason if not is_workday else None,
+        'session_exists': session_exists,
+        'stats': get_attendance_stats(students, selected_date),
+        'departments': Department.objects.filter(is_active=True),
         'selected_department': dept_filter,
     }
     return render(request, 'attendance/attendance_list.html', context)
-
 
 # ──────────────────────────────────────────────
 # Absentees List (with Print support)
@@ -471,4 +517,28 @@ def delete_student(request, pk):
         'object': student,
         'object_type': 'Student',
         'cancel_url': 'students_list',
+    })
+
+
+
+
+@role_required(['ADMIN', 'TEACHER'])
+def calendar_view(request):
+    """View to display the institution calendar with holidays."""
+    country_code = getattr(settings, 'ERP_REGION', 'IN')
+    # Fetch holidays for current and next year
+    current_year = timezone.now().year
+    country_holidays = holidays.CountryHoliday(country_code, years=[current_year, current_year + 1])
+
+    # Format holidays for FullCalendar JS
+    calendar_events = []
+    for date, name in country_holidays.items():
+        calendar_events.append({
+            'title': name,
+            'start': date.isoformat(),
+            'className': 'bg-danger-subtle text-danger border-danger'
+        })
+
+    return render(request, 'attendance/calendar.html', {
+        'events': calendar_events
     })

@@ -1,133 +1,83 @@
 {% extends 'attendance/base.html' %}
 
-{% block title %}Mark Attendance — Attendance Pro{% endblock %}
-{% block nav_attendance %}active{% endblock %}
-{% block page_title %}Mark Attendance{% endblock %}
-
 {% block content %}
-<!-- Filters -->
-<div class="card mb-4 no-print">
-    <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 me-1"></i> Date
-                </label>
-                <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"
-                    class="form-control">
+<div class="container-fluid px-4 py-3">
+    
+    <!-- 1. ZOHO-STYLE COMPACT HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div>
+            <h4 class="fw-bold text-dark mb-0">{{ selected_date|date:"l, d F" }}</h4>
+            <div class="d-flex align-items-center gap-2 mt-1">
+                {% if not is_workday %}
+                    <span class="badge bg-danger-subtle text-danger rounded-pill px-3">Holiday: {{ holiday_reason }}</span>
+                {% elif session_exists %}
+                    <span class="badge bg-success-subtle text-success rounded-pill px-3"><i class="bi bi-check-circle-fill me-1"></i> Finalized</span>
+                {% else %}
+                    <span class="badge bg-warning-subtle text-warning rounded-pill px-3">Pending Submission</span>
+                {% endif %}
+                <span class="text-muted small border-start ps-2">Total Students: {{ stats.total }}</span>
             </div>
+        </div>
+
+        <form method="get" class="d-flex gap-2 no-print">
+            <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" 
+                   class="form-control form-control-sm border-0 bg-light shadow-sm" onchange="this.form.submit()" style="width: 160px;">
+            
             {% if user.role == 'ADMIN' %}
-            <div class="col-md-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-building me-1"></i> Department
-                </label>
-                <select name="department" class="form-select">
-                    <option value="">All Departments</option>
-                    {% for dept in departments %}
-                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <select name="department" class="form-select form-select-sm border-0 bg-light shadow-sm" onchange="this.form.submit()" style="width: 200px;">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                {% endfor %}
+            </select>
             {% endif %}
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-funnel me-1"></i> Filter
-                </button>
-            </div>
         </form>
     </div>
-</div>
 
-<!-- Stats Bar -->
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card text-center py-2">
-            <div class="card-body py-2">
-                <div class="fw-bold fs-5 text-primary">{{ stats.total }}</div>
-                <small class="text-muted text-uppercase fw-semibold">Total</small>
-            </div>
-        </div>
+    <!-- 2. MINIMALIST STATS BAR -->
+    <div class="d-flex gap-4 mb-4 small fw-bold text-uppercase letter-spacing-1">
+        <div class="text-success"><i class="bi bi-person-check me-1"></i> Present: {{ stats.present }}</div>
+        <div class="text-danger"><i class="bi bi-person-x me-1"></i> Absent: {{ stats.absent }}</div>
+        <div class="text-dark"><i class="bi bi-percent me-1"></i> Rate: {{ stats.percentage }}%</div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center py-2">
-            <div class="card-body py-2">
-                <div class="fw-bold fs-5 text-success">{{ stats.present }}</div>
-                <small class="text-muted text-uppercase fw-semibold">Present</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center py-2">
-            <div class="card-body py-2">
-                <div class="fw-bold fs-5 text-danger">{{ stats.absent }}</div>
-                <small class="text-muted text-uppercase fw-semibold">Absent</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center py-2">
-            <div class="card-body py-2">
-                <div class="fw-bold fs-5">{{ stats.percentage }}%</div>
-                <small class="text-muted text-uppercase fw-semibold">Attendance</small>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Attendance Form -->
-<div class="card table-card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-        <h6 class="fw-semibold mb-0">
-            <i class="bi bi-calendar-check me-2"></i>
-            Attendance for {{ selected_date|date:"d M Y (l)" }}
-        </h6>
-        <span class="badge bg-dark">{{ students|length }} students</span>
-    </div>
-    <div class="card-body p-0">
-        <form method="post">
+    <!-- 3. DATA GRID -->
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px;">
+        <form method="post" id="attendanceForm">
             {% csrf_token %}
             <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
 
             <div class="table-responsive">
-                <table class="table table-hover mb-0" id="attendanceTable">
-                    <thead>
-                        <tr>
-                            <th style="width:50px;">#</th>
-                            <th>Student Name</th>
-                            <th>Roll Number</th>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light border-bottom">
+                        <tr class="text-muted small text-uppercase">
+                            <th class="ps-4 py-3" style="width: 60px;">#</th>
+                            <th>Student Information</th>
                             <th>Department</th>
-                            <th style="width:200px;" class="text-center">Status</th>
+                            <th class="text-center pe-4" style="width: 280px;">Attendance Status</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="border-top-0">
                         {% for student in students %}
                         <tr id="row-{{ student.id }}" class="{% if student.id in absent_ids %}row-absent{% endif %}">
-                            <td class="text-muted">{{ forloop.counter }}</td>
-                            <td class="fw-medium">{{ student.student_name }}</td>
-                            <td>{{ student.roll_number }}</td>
+                            <td class="ps-4 text-muted small">{{ forloop.counter }}</td>
                             <td>
-                                <span class="badge bg-light text-dark">{{ student.department.name }}</span>
+                                <div class="fw-bold text-dark">{{ student.student_name }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">{{ student.roll_number }}</div>
                             </td>
-                            <td class="text-center">
-                                <div class="btn-group" role="group">
-                                    <input type="radio" class="btn-check" name="status_{{ student.id }}"
-                                        id="present_{{ student.id }}" value="present" {% if student.id not in absent_ids %}checked{% endif %} onchange="updateRow({{ student.id }}, false)">
-                                    <label class="btn btn-outline-success btn-sm" for="present_{{ student.id }}">
-                                        <i class="bi bi-check-lg"></i> Present
-                                    </label>
+                            <td><span class="text-muted small">{{ student.department.code|default:student.department.name }}</span></td>
+                            <td class="pe-4">
+                                <div class="btn-group btn-group-sm w-100 shadow-sm" role="group">
+                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="p_{{ student.id }}" 
+                                        value="present" {% if student.id not in absent_ids %}checked{% endif %} 
+                                        {% if not is_workday %}disabled{% endif %} onchange="updateRow({{ student.id }}, false)">
+                                    <label class="btn btn-outline-success fw-bold py-2" for="p_{{ student.id }}">PRESENT</label>
 
-                                    <input type="radio" class="btn-check" name="status_{{ student.id }}"
-                                        id="absent_{{ student.id }}" value="absent" {% if student.id in absent_ids %}checked{% endif %} onchange="updateRow({{ student.id }}, true)">
-                                    <label class="btn btn-outline-danger btn-sm" for="absent_{{ student.id }}">
-                                        <i class="bi bi-x-lg"></i> Absent
-                                    </label>
+                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="a_{{ student.id }}" 
+                                        value="absent" {% if student.id in absent_ids %}checked{% endif %}
+                                        {% if not is_workday %}disabled{% endif %} onchange="updateRow({{ student.id }}, true)">
+                                    <label class="btn btn-outline-danger fw-bold py-2" for="a_{{ student.id }}">ABSENT</label>
                                 </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                No students found. Import students first.
                             </td>
                         </tr>
                         {% endfor %}
@@ -135,30 +85,48 @@
                 </table>
             </div>
 
-            {% if students %}
-            <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-                <small class="text-muted">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Mark all students as Present or Absent, then save.
-                </small>
-                <button type="submit" class="btn btn-primary btn-lg px-5">
-                    <i class="bi bi-save me-2"></i> Save Attendance
+            <!-- 4. FLOATING ACTION FOOTER (Zoho style) -->
+            {% if students and is_workday %}
+            <div class="sticky-bottom bg-white border-top p-3 text-end shadow-lg" style="bottom: 0;">
+                <span class="text-muted small me-4 d-none d-md-inline-block">Attendance data is synced with real-time reports.</span>
+                <button type="submit" class="btn btn-primary fw-bold px-5 py-2 shadow-sm" id="saveBtn">
+                    {% if session_exists %}Update Changes{% else %}Save Attendance{% endif %}
                 </button>
             </div>
             {% endif %}
         </form>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<style>
+    /* ERP Style Tweaks */
+    .letter-spacing-1 { letter-spacing: 0.05rem; }
+    .bg-success-subtle { background-color: #d1e7dd; color: #0f5132; }
+    .bg-danger-subtle { background-color: #f8d7da; color: #842029; }
+    .bg-warning-subtle { background-color: #fff3cd; color: #664d03; }
+    
+    .row-absent { background-color: rgba(220, 53, 69, 0.03) !important; }
+    
+    /* Toggle Button Overrides */
+    .btn-check:checked + .btn-outline-success { background-color: #198754; border-color: #198754; color: #fff; }
+    .btn-check:checked + .btn-outline-danger { background-color: #dc3545; border-color: #dc3545; color: #fff; }
+    
+    .table th { border-top: none; }
+    .btn { border-radius: 6px; }
+    .form-control, .form-select { border-radius: 6px; font-size: 0.85rem; }
+    
+    .sticky-bottom { margin-top: -1px; }
+</style>
+
 <script>
     function updateRow(studentId, isAbsent) {
         const row = document.getElementById('row-' + studentId);
-        if (isAbsent) {
-            row.classList.add('row-absent');
-        } else {
-            row.classList.remove('row-absent');
+        row.classList.toggle('row-absent', isAbsent);
+        
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) {
+            saveBtn.classList.replace('btn-primary', 'btn-warning');
+            saveBtn.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i> Save Changes';
         }
     }
 </script>
