@@ -17,4 +17,11 @@ urlpatterns = [
     path('reset/done/', views.CustomPasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
     path('unauthorized/', views.unauthorized_view, name='unauthorized'),
+
+
+    path('subscription/', views.subscription_page, name='subscription'),
+    path('subscription-expired/', views.subscription_expired, name='subscription_expired'),
+
+
+    path('google-login/', views.google_login_redirect, name='google_login'),
 ]

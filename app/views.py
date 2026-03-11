@@ -45,7 +45,10 @@ def dashboard(request):
     today = timezone.now().date()
 
     # System-wide stats
-    all_students = Student.objects.filter(is_active=True)
+    all_students = Student.objects.filter(
+        is_active=True,
+        organization=request.user.organization
+    )
     stats = get_attendance_stats(all_students, today)
 
     # Department & teacher counts
@@ -217,7 +220,10 @@ def attendance_list(request):
             department_id__in=teacher_dept_ids, is_active=True
         ).select_related('department')
     else:
-        students = Student.objects.filter(is_active=True).select_related('department')
+        students = Student.objects.filter(
+            is_active=True,
+            organization=request.user.organization
+        ).select_related('department')
 
     # Department filter (Admin only)
     dept_filter = request.GET.get('department')
@@ -377,7 +383,10 @@ def students_list(request):
     query = request.GET.get('q', '')
     dept_filter = request.GET.get('department', '')
 
-    students = Student.objects.filter(is_active=True).select_related('department')
+    students = Student.objects.filter(
+            is_active=True,
+            organization=request.user.organization
+        ).select_related('department')
 
     # Teachers see only their department's students
     if request.user.is_teacher:

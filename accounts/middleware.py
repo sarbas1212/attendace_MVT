@@ -2,6 +2,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.conf import settings
 from .models import User
+from django.utils import timezone
 
 class EnforcePasswordChangeMiddleware:
     def __init__(self, get_response):
@@ -21,7 +22,6 @@ class EnforcePasswordChangeMiddleware:
         return self.get_response(request)
     
 
-
 class RoleBasedAccessMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -30,61 +30,87 @@ class RoleBasedAccessMiddleware:
         path = request.path
         user = request.user
 
-        # 1. ALLOW PUBLIC ROUTES
-        if path.startswith(settings.STATIC_URL) or path.startswith(settings.MEDIA_URL) or path.startswith('/admin/'):
+        # ✅ 1. Allow static, media, admin
+        if (
+            path.startswith(settings.STATIC_URL)
+            or path.startswith(settings.MEDIA_URL)
+            or path.startswith('/admin/')
+        ):
             return self.get_response(request)
 
         public_routes = [
-            reverse('index'),             # <--- ADD THIS: Your Landing Page
+            reverse('index'),
             reverse('login'),
             reverse('password_reset'),
             reverse('password_reset_done'),
             reverse('password_reset_complete'),
             reverse('unauthorized'),
         ]
-        
-        # Dynamic check for reset/activation
-        if path in public_routes or path.startswith('/accounts/reset/') or path.startswith('/accounts/activate/'):
+
+        if (
+            path in public_routes
+            or path.startswith('/accounts/reset/')
+            or path.startswith('/accounts/activate/')
+        ):
             return self.get_response(request)
 
-        # 2. ANONYMOUS USER PROTECTION
+        # ✅ 2. Anonymous users
         if not user.is_authenticated:
-            # Change redirect from 'login' to 'index'
-            return redirect('index') 
+            return redirect('index')
 
-        # 3. FORCE PASSWORD CHANGE ENFORCEMENT
+        # ✅ 3. Enforce Organization existence
+        if not user.organization:
+            return redirect('unauthorized')
+
+        # ✅ 4. Enforce Subscription Validity
+        org = user.organization
+        if org.plan != "FREE":
+            if not org.subscription_end or org.subscription_end < timezone.now().date():
+                return redirect('subscription_expired')
+
+        # ✅ 5. Force Password Change
         if user.must_change_password:
             allowed = [reverse('force_password_change'), reverse('logout')]
             if path not in allowed:
                 return redirect('force_password_change')
-            return self.get_response(request)
 
-        # 4. ROLE-BASED PATH PROTECTION
-        
-        # ADMIN ONLY ROUTES
-        admin_prefixes = ['/teachers/', '/departments/', '/admin-dashboard/', '/accounts/admin-register/']
+        # ✅ 6. Role-based Access Control
+
+        # Admin only routes
+        admin_prefixes = [
+            '/teachers/',
+            '/departments/',
+            '/admin-dashboard/',
+            '/accounts/admin-register/',
+        ]
+
         if any(path.startswith(prefix) for prefix in admin_prefixes):
-            if user.role != User.Role.ADMIN:
+            if user.role != user.Role.ADMIN:
                 return redirect('unauthorized')
 
-        # TEACHER & ADMIN ROUTES (Attendance & Teacher Dashboard)
-        teacher_prefixes = ['/attendance/', '/teacher-dashboard/', '/reports/'] 
+        # Teacher + Admin routes
+        teacher_prefixes = [
+            '/attendance/',
+            '/teacher-dashboard/',
+            '/reports/',
+            '/calendar/',
+        ]
+
         if any(path.startswith(prefix) for prefix in teacher_prefixes):
-            if user.role not in [User.Role.ADMIN, User.Role.TEACHER]:
+            if user.role not in [user.Role.ADMIN, user.Role.TEACHER]:
                 return redirect('unauthorized')
 
-        # STUDENT PROTECTION (Prevent students from accessing any management routes)
-        if user.role == User.Role.STUDENT:
-            # List of allowed prefixes for students
-            student_allowed = ['/student-dashboard/', '/my-attendance/', '/logout/', '/password-reset/']
-            # If a student tries to access something NOT in their allowed list
+        # Student isolation
+        if user.role == user.Role.STUDENT:
+            student_allowed = [
+                '/student-dashboard/',
+                '/logout/',
+                '/password-reset/',
+            ]
             if not any(path.startswith(prefix) for prefix in student_allowed):
-                # But allow them to see the index/home page if applicable
-                if path != '/':
-                    return redirect('unauthorized')
+                return redirect('unauthorized')
 
         return self.get_response(request)
-    
 
 class DisableCacheMiddleware:
     """

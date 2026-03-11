@@ -15,18 +15,26 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # ── Installed apps ────────────────────────────────────────────
 INSTALLED_APPS = [
+    'django.contrib.sites',
+
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Project apps
+
     'accounts',
     'departments',
     'teachers',
     'app',
     'reports',
+    'organizations',
 ]
 
 # ── Middleware ─────────────────────────────────────────────────
@@ -36,12 +44,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'accounts.middleware.EnforcePasswordChangeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
+
     'accounts.middleware.RoleBasedAccessMiddleware',
-    'accounts.middleware.DisableCacheMiddleware'
+    'accounts.middleware.DisableCacheMiddleware',
 ]
 
 ROOT_URLCONF = 'attendance_pro.urls'
@@ -49,7 +58,7 @@ ROOT_URLCONF = 'attendance_pro.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -90,21 +99,10 @@ STATICFILES_DIRS = [
     BASE_DIR / 'app' / 'static',
 ]
 
-# ── Auth settings ─────────────────────────────────────────────
-AUTH_USER_MODEL = 'accounts.User'
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
-
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-]
-
 # ── Default primary key ──────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ── Email backend for testing ───────────────────────────────
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -119,10 +117,38 @@ EMAIL_HOST_PASSWORD = 'anmr rlmb zrzf gzuq' # Your 16-digit App Password
 DEFAULT_FROM_EMAIL = 'Attendance Pro <sarbasjb@gmail.com>'
 
 
-# settings.py
-ADMIN_REGISTRATION_CODE = "ATTENDANCE2026"
+AUTH_USER_MODEL = 'accounts.User'
 
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'index'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+SITE_ID = 1
+
+ACCOUNT_LOGIN_METHODS = {'email', 'username'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    }
+}
+
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = False
 
 
 # Set your country (e.g., 'US', 'IN', 'UK', 'CA')
 ERP_REGION = 'IN' 
+
+
+RAZORPAY_KEY_ID = "rzp_test_SNtxrcWDmewujJ"
+RAZORPAY_KEY_SECRET = "x4K0vkDgqbmjBp4geiV6iYjpA"

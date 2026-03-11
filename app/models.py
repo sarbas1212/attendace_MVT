@@ -5,12 +5,19 @@ Core attendance models: Student and Absence.
 from django.db import models
 from django.conf import settings
 
+from organizations.models import Organization
+
 
 class Student(models.Model):
     """
     Represents a student enrolled in a department.
     Optionally linked to a User account for self-service login.
     """
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE
+    )
+
     student_name = models.CharField(max_length=100)
     roll_number = models.CharField(max_length=50, unique=True, db_index=True)
     department = models.ForeignKey(
@@ -46,6 +53,11 @@ class Absence(models.Model):
     The unique_together constraint prevents duplicate absence entries
     for the same student on the same date.
     """
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE
+    )
+
     student = models.ForeignKey(
         Student,
         on_delete=models.CASCADE,
@@ -75,6 +87,11 @@ class Absence(models.Model):
 class AttendanceSession(models.Model):
     """Officially records that attendance was taken for a department on a specific date."""
     date = models.DateField(db_index=True)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE
+    )
+
     department = models.ForeignKey('departments.Department', on_delete=models.CASCADE)
     marked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

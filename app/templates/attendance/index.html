@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AttendancePro – Student Attendance Management System</title>
+    <title>AttendancePro – Cloud Attendance Platform</title>
     <meta name="description"
-        content="AttendancePro is a modern student attendance management system. Import student data, mark attendance in real-time, track absentees, and generate reports effortlessly.">
+        content="AttendancePro is a cloud-based attendance management platform for schools and institutions. Manage attendance, departments, teachers, students, reports, and subscriptions from one secure system.">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
@@ -20,7 +20,6 @@
             --accent-light: #22d3ee;
             --dark: #0f172a;
             --dark-card: #1e293b;
-            --surface: #f8fafc;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
             --glass-bg: rgba(255, 255, 255, 0.05);
@@ -40,7 +39,6 @@
             overflow-x: hidden;
         }
 
-        /* ── Animated Background ────────────────────── */
         .bg-glow {
             position: fixed;
             inset: 0;
@@ -63,7 +61,6 @@
             background: var(--primary);
             top: -10%;
             left: -5%;
-            animation-delay: 0s;
         }
 
         .bg-glow .orb-2 {
@@ -85,26 +82,14 @@
         }
 
         @keyframes float {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            33% {
-                transform: translate(30px, -40px) scale(1.05);
-            }
-
-            66% {
-                transform: translate(-20px, 30px) scale(0.95);
-            }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -40px) scale(1.05); }
+            66% { transform: translate(-20px, 30px) scale(0.95); }
         }
 
-        /* ── Navbar ─────────────────────────────────── */
         .navbar-custom {
             background: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--glass-border);
             padding: 1rem 0;
             position: fixed;
@@ -127,6 +112,7 @@
             display: flex;
             align-items: center;
             gap: 0.6rem;
+            text-decoration: none;
         }
 
         .brand-icon {
@@ -159,7 +145,6 @@
             box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
         }
 
-        /* ── Hero Section ───────────────────────────── */
         .hero-section {
             min-height: 100vh;
             display: flex;
@@ -193,17 +178,8 @@
         }
 
         @keyframes pulse-dot {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.5;
-                transform: scale(1.3);
-            }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
         }
 
         .hero-title {
@@ -218,14 +194,13 @@
             background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .hero-description {
             font-size: 1.15rem;
             color: var(--text-secondary);
             line-height: 1.7;
-            max-width: 520px;
+            max-width: 540px;
             margin-bottom: 2.5rem;
         }
 
@@ -278,29 +253,13 @@
             transform: translateY(-2px);
         }
 
-        /* Hero Visual */
-        .hero-visual {
-            position: relative;
-        }
-
         .dashboard-preview {
             background: var(--dark-card);
             border-radius: 20px;
             border: 1px solid var(--glass-border);
             padding: 1.5rem;
             box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
-            position: relative;
             overflow: hidden;
-        }
-
-        .dashboard-preview::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary-light));
         }
 
         .preview-header {
@@ -318,17 +277,9 @@
             border-radius: 50%;
         }
 
-        .preview-dot.red {
-            background: #ef4444;
-        }
-
-        .preview-dot.yellow {
-            background: #f59e0b;
-        }
-
-        .preview-dot.green {
-            background: #22c55e;
-        }
+        .preview-dot.red { background: #ef4444; }
+        .preview-dot.yellow { background: #f59e0b; }
+        .preview-dot.green { background: #22c55e; }
 
         .preview-stat-grid {
             display: grid;
@@ -350,7 +301,6 @@
             background: linear-gradient(135deg, var(--primary-light), var(--accent));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .preview-stat-label {
@@ -394,23 +344,25 @@
             transition: width 1.5s ease;
         }
 
-        .preview-bar-fill.purple {
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-        }
+        .preview-bar-fill.purple { background: linear-gradient(90deg, var(--primary), var(--primary-light)); }
+        .preview-bar-fill.cyan { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+        .preview-bar-fill.green { background: linear-gradient(90deg, #22c55e, #4ade80); }
 
-        .preview-bar-fill.cyan {
-            background: linear-gradient(90deg, var(--accent), var(--accent-light));
-        }
-
-        .preview-bar-fill.green {
-            background: linear-gradient(90deg, #22c55e, #4ade80);
-        }
-
-        /* ── Features Section ───────────────────────── */
-        .features-section {
+        .features-section, .stats-section, .how-section, .cta-section {
             position: relative;
             z-index: 1;
-            padding: 6rem 0 7rem;
+        }
+
+        .features-section, .how-section {
+            padding: 6rem 0;
+        }
+
+        .stats-section {
+            padding: 5rem 0;
+        }
+
+        .cta-section {
+            padding: 6rem 0 8rem;
         }
 
         .section-label {
@@ -445,43 +397,13 @@
             border-radius: 20px;
             padding: 2rem 1.8rem;
             height: 100%;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            opacity: 0;
-            transition: opacity 0.4s ease;
+            transition: all 0.4s ease;
         }
 
         .feature-card:hover {
             transform: translateY(-8px);
             border-color: rgba(79, 70, 229, 0.3);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
-                0 0 40px rgba(79, 70, 229, 0.1);
-        }
-
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-
-        .feature-card:nth-child(1)::before {
-            background: linear-gradient(90deg, #4f46e5, #818cf8);
-        }
-
-        .feature-card:nth-child(2)::before {
-            background: linear-gradient(90deg, #06b6d4, #22d3ee);
-        }
-
-        .feature-card:nth-child(3)::before {
-            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
         .feature-icon-wrapper {
@@ -493,21 +415,8 @@
             justify-content: center;
             font-size: 1.5rem;
             margin-bottom: 1.4rem;
-        }
-
-        .feature-card:nth-child(1) .feature-icon-wrapper {
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(79, 70, 229, 0.05));
-            color: var(--primary-light);
-        }
-
-        .feature-card:nth-child(2) .feature-icon-wrapper {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.05));
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(6, 182, 212, 0.08));
             color: var(--accent-light);
-        }
-
-        .feature-card:nth-child(3) .feature-icon-wrapper {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05));
-            color: #a78bfa;
         }
 
         .feature-card h3 {
@@ -522,31 +431,11 @@
             line-height: 1.65;
         }
 
-        /* ── Stats Section ──────────────────────────── */
-        .stats-section {
-            position: relative;
-            z-index: 1;
-            padding: 5rem 0;
-        }
-
         .stats-wrapper {
             background: linear-gradient(135deg, var(--primary-dark), var(--dark-card));
             border-radius: 24px;
             border: 1px solid var(--glass-border);
             padding: 3.5rem 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stats-wrapper::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 60%);
-            pointer-events: none;
         }
 
         .stat-item {
@@ -556,24 +445,15 @@
         .stat-number {
             font-size: clamp(2.2rem, 4vw, 3rem);
             font-weight: 900;
-            letter-spacing: -1px;
             background: linear-gradient(135deg, #fff, var(--accent-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .stat-description {
             color: var(--text-secondary);
             font-size: 0.9rem;
             margin-top: 0.3rem;
-        }
-
-        /* ── How It Works ───────────────────────────── */
-        .how-section {
-            position: relative;
-            z-index: 1;
-            padding: 6rem 0;
         }
 
         .step-card {
@@ -606,13 +486,6 @@
             line-height: 1.6;
         }
 
-        /* ── CTA Section ────────────────────────────── */
-        .cta-section {
-            position: relative;
-            z-index: 1;
-            padding: 6rem 0 8rem;
-        }
-
         .cta-box {
             text-align: center;
             background: var(--glass-bg);
@@ -620,33 +493,20 @@
             border-radius: 28px;
             padding: 4rem 2rem;
             backdrop-filter: blur(20px);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta-box::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(6, 182, 212, 0.08));
-            pointer-events: none;
         }
 
         .cta-box h2 {
             font-size: clamp(1.6rem, 3vw, 2.4rem);
             font-weight: 800;
             margin-bottom: 1rem;
-            position: relative;
         }
 
         .cta-box p {
             color: var(--text-secondary);
             font-size: 1.05rem;
             margin-bottom: 2rem;
-            position: relative;
         }
 
-        /* ── Footer ─────────────────────────────────── */
         .footer {
             position: relative;
             z-index: 1;
@@ -670,12 +530,6 @@
             color: var(--text-primary);
         }
 
-        .footer-brand .brand-icon {
-            width: 30px;
-            height: 30px;
-            font-size: 0.85rem;
-        }
-
         .footer-copy {
             color: var(--text-secondary);
             font-size: 0.85rem;
@@ -690,18 +544,16 @@
             color: var(--text-secondary);
             text-decoration: none;
             font-size: 0.85rem;
-            transition: color 0.3s ease;
         }
 
         .footer-links a:hover {
             color: var(--primary-light);
         }
 
-        /* ── Animations ─────────────────────────────── */
         .fade-up {
             opacity: 0;
             transform: translateY(30px);
-            transition: all 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transition: all 0.7s ease;
         }
 
         .fade-up.visible {
@@ -709,7 +561,6 @@
             transform: translateY(0);
         }
 
-        /* ── Responsive ─────────────────────────────── */
         @media (max-width: 992px) {
             .hero-visual {
                 margin-top: 3rem;
@@ -719,11 +570,6 @@
         @media (max-width: 576px) {
             .hero-buttons {
                 flex-direction: column;
-            }
-
-            .hero-buttons a {
-                text-align: center;
-                justify-content: center;
             }
 
             .preview-stat-grid {
@@ -738,28 +584,25 @@
 </head>
 
 <body>
-
-    <!-- Background Glow -->
     <div class="bg-glow">
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
     </div>
 
-    <!-- ── Navbar ──────────────────────────────────── -->
     <nav class="navbar-custom">
         <div class="container d-flex justify-content-between align-items-center">
             <a class="navbar-brand-custom" href="{% url 'index' %}">
                 <span class="brand-icon"><i class="bi bi-mortarboard-fill"></i></span>
                 AttendancePro
             </a>
-            <a href="{% url 'login' %}" class="btn-signin-nav">
-                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
-            </a>
+            <div class="d-flex gap-3 align-items-center">
+                <a href="{% url 'login' %}" class="text-light text-decoration-none small fw-semibold">Sign In</a>
+                <a href="{% url 'admin_register' %}" class="btn-signin-nav">Start Free Trial</a>
+            </div>
         </div>
     </nav>
 
-    <!-- ── Hero Section ────────────────────────────── -->
     <section class="hero-section">
         <div class="container">
             <div class="row align-items-center g-5">
@@ -767,24 +610,23 @@
                     <div class="fade-up">
                         <div class="hero-badge">
                             <span class="dot"></span>
-                            Student Attendance Management System
+                            Cloud-Based Attendance SaaS Platform
                         </div>
                     </div>
                     <h1 class="hero-title fade-up" style="transition-delay: 0.1s;">
                         Smarter Way to<br>
-                        <span class="gradient-text">Track Attendance</span>
+                        <span class="gradient-text">Manage Attendance</span>
                     </h1>
                     <p class="hero-description fade-up" style="transition-delay: 0.2s;">
-                        Streamline your institution's attendance workflow. Import students, mark attendance in
-                        real-time, track absentees instantly, and generate comprehensive reports — all from one powerful
-                        dashboard.
+                        A complete cloud-based attendance platform for schools and institutions. Manage students, teachers,
+                        departments, reports, calendars, and subscriptions from one secure dashboard.
                     </p>
                     <div class="hero-buttons fade-up" style="transition-delay: 0.3s;">
-                        <a href="{% url 'login' %}" class="btn-hero-primary">
-                            Get Started <i class="bi bi-arrow-right"></i>
+                        <a href="{% url 'admin_register' %}" class="btn-hero-primary">
+                            Start Free Trial <i class="bi bi-arrow-right"></i>
                         </a>
-                        <a href="#features" class="btn-hero-secondary">
-                            <i class="bi bi-play-circle"></i> See How It Works
+                        <a href="#pricing" class="btn-hero-secondary">
+                            <i class="bi bi-credit-card"></i> View Pricing
                         </a>
                     </div>
                 </div>
@@ -794,25 +636,24 @@
                             <span class="preview-dot red"></span>
                             <span class="preview-dot yellow"></span>
                             <span class="preview-dot green"></span>
-                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary);">Dashboard
-                                Overview</span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary);">Platform Overview</span>
                         </div>
                         <div class="preview-stat-grid">
                             <div class="preview-stat">
                                 <div class="preview-stat-value">1,247</div>
-                                <div class="preview-stat-label">Total Students</div>
+                                <div class="preview-stat-label">Students</div>
                             </div>
                             <div class="preview-stat">
                                 <div class="preview-stat-value">94.8%</div>
-                                <div class="preview-stat-label">Avg. Attendance</div>
-                            </div>
-                            <div class="preview-stat">
-                                <div class="preview-stat-value">65</div>
-                                <div class="preview-stat-label">Absent Today</div>
+                                <div class="preview-stat-label">Attendance</div>
                             </div>
                             <div class="preview-stat">
                                 <div class="preview-stat-value">12</div>
                                 <div class="preview-stat-label">Departments</div>
+                            </div>
+                            <div class="preview-stat">
+                                <div class="preview-stat-value">24/7</div>
+                                <div class="preview-stat-label">Cloud Access</div>
                             </div>
                         </div>
                         <div class="preview-bar-group">
@@ -841,14 +682,14 @@
         </div>
     </section>
 
-    <!-- ── Features Section ────────────────────────── -->
     <section class="features-section" id="features">
         <div class="container">
             <div class="text-center mb-5 fade-up">
                 <div class="section-label"><i class="bi bi-stars"></i> Core Features</div>
-                <h2 class="section-title">Everything You Need to<br>Manage Attendance</h2>
-                <p class="section-subtitle mx-auto">A complete toolkit designed for educators and administrators to
-                    simplify daily attendance operations.</p>
+                <h2 class="section-title">Everything You Need to<br>Run Attendance Smoothly</h2>
+                <p class="section-subtitle mx-auto">
+                    Designed for schools and institutions that need simple daily workflows with powerful reporting.
+                </p>
             </div>
             <div class="row g-4">
                 <div class="col-md-4 fade-up" style="transition-delay: 0.1s;">
@@ -856,9 +697,8 @@
                         <div class="feature-icon-wrapper">
                             <i class="bi bi-file-earmark-spreadsheet"></i>
                         </div>
-                        <h3>Import Students from Excel</h3>
-                        <p>Bulk import student data directly from Excel or CSV files. Map columns automatically and
-                            validate entries before saving — no manual data entry required.</p>
+                        <h3>Student Import</h3>
+                        <p>Import students in bulk from Excel or CSV and organize them by department without manual entry.</p>
                     </div>
                 </div>
                 <div class="col-md-4 fade-up" style="transition-delay: 0.2s;">
@@ -866,9 +706,8 @@
                         <div class="feature-icon-wrapper">
                             <i class="bi bi-check2-circle"></i>
                         </div>
-                        <h3>Real-Time Attendance Marking</h3>
-                        <p>Mark present or absent with a single click. Department-wise filtering, date selection, and
-                            instant saves make the daily process fast and error-free.</p>
+                        <h3>Daily Attendance</h3>
+                        <p>Take attendance by date and department with a simple interface built for real institutional workflows.</p>
                     </div>
                 </div>
                 <div class="col-md-4 fade-up" style="transition-delay: 0.3s;">
@@ -876,42 +715,40 @@
                         <div class="feature-icon-wrapper">
                             <i class="bi bi-graph-up-arrow"></i>
                         </div>
-                        <h3>Daily Absentees Report</h3>
-                        <p>Instantly view and print absentee lists for any date. Filter by department, export reports,
-                            and keep accurate records for institutional compliance.</p>
+                        <h3>Reports & Insights</h3>
+                        <p>Track absentees, review attendance trends, and view calendar-based academic planning in one system.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ── Stats Section ───────────────────────────── -->
     <section class="stats-section">
         <div class="container">
             <div class="stats-wrapper fade-up">
                 <div class="row g-4">
                     <div class="col-6 col-md-3">
                         <div class="stat-item">
-                            <div class="stat-number" data-target="99.9">99.9%</div>
-                            <div class="stat-description">System Uptime</div>
+                            <div class="stat-number">99.9%</div>
+                            <div class="stat-description">Platform Uptime</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="stat-item">
                             <div class="stat-number">&lt; 2s</div>
-                            <div class="stat-description">Report Generation</div>
+                            <div class="stat-description">Fast Reporting</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="stat-item">
                             <div class="stat-number">100%</div>
-                            <div class="stat-description">Data Accuracy</div>
+                            <div class="stat-description">Role-Based Access</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="stat-item">
                             <div class="stat-number">24/7</div>
-                            <div class="stat-description">Access Anywhere</div>
+                            <div class="stat-description">Cloud Availability</div>
                         </div>
                     </div>
                 </div>
@@ -919,57 +756,97 @@
         </div>
     </section>
 
-    <!-- ── How It Works ────────────────────────────── -->
     <section class="how-section" id="how-it-works">
         <div class="container">
             <div class="text-center mb-5 fade-up">
                 <div class="section-label"><i class="bi bi-lightbulb"></i> How It Works</div>
                 <h2 class="section-title">Get Started in Minutes</h2>
-                <p class="section-subtitle mx-auto">Three simple steps to modernize your attendance management.</p>
+                <p class="section-subtitle mx-auto">Set up your institution and start using AttendancePro quickly.</p>
             </div>
             <div class="row g-4">
                 <div class="col-md-4 fade-up" style="transition-delay: 0.1s;">
                     <div class="step-card">
                         <div class="step-number">1</div>
-                        <h4>Upload Student Data</h4>
-                        <p>Import your student roster from an Excel file. The system auto-maps the columns and creates
-                            student profiles instantly.</p>
+                        <h4>Create Organization</h4>
+                        <p>Register your institution and configure your admin account for secure access.</p>
                     </div>
                 </div>
                 <div class="col-md-4 fade-up" style="transition-delay: 0.2s;">
                     <div class="step-card">
                         <div class="step-number">2</div>
-                        <h4>Mark Attendance Daily</h4>
-                        <p>Select the date, choose a department, and mark each student present or absent. It's fast,
-                            intuitive, and saves automatically.</p>
+                        <h4>Activate Subscription</h4>
+                        <p>Choose a monthly or yearly plan after login and activate your school account with secure billing.</p>
                     </div>
                 </div>
                 <div class="col-md-4 fade-up" style="transition-delay: 0.3s;">
                     <div class="step-card">
                         <div class="step-number">3</div>
-                        <h4>Review & Report</h4>
-                        <p>View absentee lists, track attendance trends, and print reports. All data is available
-                            anytime from your dashboard.</p>
+                        <h4>Manage Attendance</h4>
+                        <p>Add teachers, import students, record attendance, and monitor reports from one dashboard.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ── CTA Section ─────────────────────────────── -->
+    <section class="features-section" id="pricing">
+        <div class="container">
+            <div class="text-center mb-5 fade-up">
+                <div class="section-label"><i class="bi bi-credit-card"></i> Pricing</div>
+                <h2 class="section-title">Simple & Transparent Plans</h2>
+                <p class="section-subtitle mx-auto">Register your organization first, then choose the right plan after login.</p>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4 fade-up">
+                    <div class="feature-card text-center">
+                        <h4 class="fw-bold mb-3">Monthly Plan</h4>
+                        <h2 class="fw-bold mb-2">₹999</h2>
+                        <p class="text-white small mb-4">Billed monthly</p>
+                        <ul class="list-unstyled small text-start mb-4">
+                            <li class="mb-2">✔ Unlimited Students</li>
+                            <li class="mb-2">✔ Attendance Reports</li>
+                            <li class="mb-2">✔ Academic Calendar</li>
+                            <li class="mb-2">✔ Admin Dashboard</li>
+                        </ul>
+                        <a href="{% url 'admin_register' %}" class="btn-hero-primary w-100 justify-content-center">
+                            Create Account
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-4 fade-up">
+                    <div class="feature-card text-center" style="border-color: rgba(79, 70, 229, 0.45);">
+                        <h4 class="fw-bold mb-3">Yearly Plan</h4>
+                        <h2 class="fw-bold mb-2">₹9999</h2>
+                        <p class="text-white small mb-4">Best value for institutions</p>
+                        <ul class="list-unstyled small text-start mb-4">
+                            <li class="mb-2">✔ Everything in Monthly</li>
+                            <li class="mb-2">✔ Priority Access</li>
+                            <li class="mb-2">✔ Advanced Reporting</li>
+                            <li class="mb-2">✔ Lower yearly cost</li>
+                        </ul>
+                        <a href="{% url 'admin_register' %}" class="btn-hero-primary w-100 justify-content-center">
+                            Create Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="cta-section">
         <div class="container">
             <div class="cta-box fade-up">
-                <h2>Ready to Simplify Attendance?</h2>
-                <p>Sign in now and start managing your institution's attendance with ease.</p>
-                <a href="{% url 'login' %}" class="btn-hero-primary" style="position: relative;">
-                    Sign In to Dashboard <i class="bi bi-arrow-right"></i>
+                <h2>Start Managing Your Institution Today</h2>
+                <p>Create your organization account and get started in minutes.</p>
+                <a href="{% url 'admin_register' %}" class="btn-hero-primary">
+                    Start Free Trial <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- ── Footer ──────────────────────────────────── -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
@@ -978,47 +855,38 @@
                     AttendancePro
                 </div>
                 <div class="footer-copy">
-                    &copy; 2026 AttendancePro. Built for smarter institutions.
+                    &copy; 2026 AttendancePro. Cloud attendance for modern institutions.
                 </div>
                 <div class="footer-links">
                     <a href="#features">Features</a>
-                    <a href="#how-it-works">How It Works</a>
+                    <a href="#pricing">Pricing</a>
                     <a href="{% url 'login' %}">Sign In</a>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
-        // ── Scroll Animations (IntersectionObserver) ──
         document.addEventListener('DOMContentLoaded', () => {
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                    }
+                    if (entry.isIntersecting) entry.target.classList.add('visible');
                 });
             }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
             document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-            // ── Navbar Scroll Effect ──
             window.addEventListener('scroll', () => {
                 const nav = document.querySelector('.navbar-custom');
                 nav.classList.toggle('scrolled', window.scrollY > 50);
             });
 
-            // ── Animated Dashboard Bars ──
             setTimeout(() => {
                 document.querySelectorAll('.preview-bar-fill').forEach(bar => {
                     bar.style.width = bar.dataset.width;
                 });
             }, 800);
 
-            // ── Smooth Scroll ──
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     e.preventDefault();
@@ -1031,5 +899,4 @@
         });
     </script>
 </body>
-
-</html>
+</html>     

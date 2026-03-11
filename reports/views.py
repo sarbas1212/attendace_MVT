@@ -33,7 +33,10 @@ def reports_hub(request):
         start_date = end_date = today
 
     # 3. Base Query
-    students = Student.objects.filter(is_active=True).select_related('department')
+    students = Student.objects.filter(
+            is_active=True,
+            organization=request.user.organization
+        ).select_related('department')
     if dept_id:
         students = students.filter(department_id=dept_id)
 

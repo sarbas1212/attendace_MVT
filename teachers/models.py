@@ -5,6 +5,7 @@ TeacherAssignment — links a User (role=TEACHER) to a Department.
 from django.db import models
 from accounts.models import User
 from departments.models import Department
+from organizations.models import Organization
 
 
 class TeacherAssignment(models.Model):
@@ -13,6 +14,10 @@ class TeacherAssignment(models.Model):
     A teacher may teach in multiple departments; each row is one assignment.
     One department may have at most one class-teacher (enforced via constraint).
     """
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE
+    )
 
     teacher = models.ForeignKey(
         User,

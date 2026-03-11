@@ -5,97 +5,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Attendance Pro</title>
+    <title>Login — AttendancePro</title>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 460px;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        .brand-logo {
+            font-size: 2.5rem;
+            color: #4f46e5;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .form-control:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 0.15rem rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-primary {
+            background-color: #4f46e5;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+
+        .btn-google {
+            border-radius: 8px;
+            font-weight: 600;
+            border: 1px solid #dbe2ea;
+            background: #fff;
+            color: #111827;
+        }
+
+        .btn-google:hover {
+            background: #f8fafc;
+        }
+
+        .footer-text {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin: 1.2rem 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .75rem;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .75rem;
+        }
+
+        .helper-text {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+    </style>
 </head>
 
-<body class="login-page">
+<body>
 
-    <div class="login-card card shadow-lg">
-        <div class="card-header text-center py-4 bg-white border-0">
-            <div class="text-primary" style="font-size: 3rem; margin-bottom: 8px;">
+<div class="login-wrapper">
+    <div class="card login-card p-4">
+
+        <div class="text-center mb-4">
+            <div class="brand-logo mb-2">
                 <i class="bi bi-mortarboard-fill"></i>
             </div>
-            <h3 class="fw-bold">Attendance Pro</h3>
-            <p class="text-muted small">Sign in to continue to your dashboard</p>
+            <h5 class="fw-bold mb-1">AttendancePro</h5>
+            <small class="text-muted">Cloud Attendance Platform</small>
         </div>
 
-        <div class="card-body px-4 pb-4">
-            <!-- Authentication Errors -->
-            {% if form.errors %}
-            <div class="alert alert-danger py-2 border-0 small shadow-sm mb-4" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-                    <div>
-                        <div class="fw-bold">Invalid username or password.</div>
-                        <div style="font-size: 0.75rem;">If you just registered, please check your email to activate your account.</div>
-                    </div>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} small py-2 border-0">
+                    {{ message }}
                 </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if form.errors %}
+            <div class="alert alert-danger small py-2 border-0">
+                Invalid login credentials.
             </div>
-            {% endif %}
+        {% endif %}
 
-            <!-- System Messages (Success/Error from views) -->
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} py-2 border-0 small">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+        <form method="post">
+            {% csrf_token %}
 
-            <form method="post">
-                {% csrf_token %}
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small" for="id_username">
-                        <i class="bi bi-person me-1"></i> Username
-                    </label>
-                    <input type="text" name="username" id="id_username" class="form-control form-control-lg"
-                        placeholder="Enter your username" autofocus required style="font-size: 0.95rem;">
-                </div>
-
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold small mb-0" for="id_password">
-                            <i class="bi bi-lock me-1"></i> Password
-                        </label>
-                        <a href="{% url 'password_reset' %}" class="text-decoration-none small fw-semibold text-primary">
-                            <i class="bi bi-question-circle me-1"></i> Forgot Password?
-                        </a>
-                    </div>
-                    <input type="password" name="password" id="id_password" class="form-control form-control-lg"
-                        placeholder="Enter your password" required style="font-size: 0.95rem;">
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                    <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
-                </button>
-            </form>
-
-            <!-- INITIAL SETUP LOGIC: Only visible if no Admin exists -->
-            {% if not admin_exists %}
-            <div class="mt-4 pt-3 border-top">
-                <div class="alert alert-info py-2 px-3 border-0 shadow-sm mb-3" style="font-size: 0.75rem; background-color: #e7f3ff; color: #0056b3;">
-                    <i class="bi bi-info-circle-fill me-2"></i> 
-                    <strong>Setup Mode:</strong> No administrator detected in the system.
-                </div>
-                <a href="{% url 'admin_register' %}" class="btn btn-outline-primary w-100 fw-bold py-2">
-                    <i class="bi bi-person-plus-fill me-2"></i> Register as Admin
-                </a>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Email or Username</label>
+                <input type="text" name="username" class="form-control" placeholder="Enter email or username" required autofocus>
             </div>
-            {% endif %}
 
-            <div class="text-center mt-4">
-                <small class="text-muted" style="font-size: 0.7rem;">
-                    Attendance Management System &bull; v2.1
-                </small>
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label small fw-semibold mb-0">Password</label>
+                    <a href="{% url 'password_reset' %}" class="small text-decoration-none">Forgot?</a>
+                </div>
+                <input type="password" name="password" class="form-control mt-1" required>
             </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 mt-2">
+                Sign In
+            </button>
+        </form>
+
+        <div class="divider">or</div>
+
+        <a href="{% url 'google_login' %}" class="btn btn-google w-100 py-2 d-flex justify-content-center align-items-center">
+            <i class="bi bi-google me-2"></i> Continue with Google
+        </a>
+
+        <div class="text-center my-4">
+            <span class="text-muted small">New to AttendancePro?</span>
         </div>
+
+        <a href="{% url 'admin_register' %}" class="btn btn-outline-secondary w-100 py-2">
+            Create Organization
+        </a>
+
+        <div class="text-center mt-2">
+            <small class="helper-text">
+                Set up your institution and create the first admin account.
+            </small>
+        </div>
+
+        <div class="text-center mt-4">
+            <small class="helper-text">
+                Teachers and students should use the credentials provided by their institution.
+            </small>
+        </div>
+
+        <div class="text-center mt-4 footer-text">
+            © 2026 AttendancePro SaaS Platform
+        </div>
+
     </div>
+</div>
 
 </body>
-
 </html>
