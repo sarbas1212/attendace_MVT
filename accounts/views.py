@@ -1,7 +1,7 @@
 """
 accounts/views.py
 Authentication views: login, logout, role-based redirect,
-one-time admin registration, and subscription pages.
+admin registration, activation, password reset, and subscription pages.
 """
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -27,10 +27,18 @@ from organizations.models import Organization
 from .forms import AdminRegisterForm
 from .models import User
 from .utils import send_admin_activation_email
+from django.utils import timezone
+
+
+import razorpay
+from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 
 
 class CustomLoginView(LoginView):
-    template_name = 'attendance/login.html'
+    template_name = 'attendance/account/login.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -41,11 +49,11 @@ class CustomLoginView(LoginView):
         identifier = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
 
+        # Allow email login by mapping email -> username
         user_obj = User.objects.filter(email__iexact=identifier).first()
         username = user_obj.username if user_obj else identifier
 
         user = authenticate(request, username=username, password=password)
-
         if user is not None:
             login(request, user)
             return redirect(self.get_success_url())
@@ -58,9 +66,16 @@ class CustomLoginView(LoginView):
     def get_success_url(self):
         user = self.request.user
 
-        if user.must_change_password:
+        # Force password change first
+        if getattr(user, "must_change_password", False):
             return reverse_lazy('force_password_change')
 
+        # If admin selected a plan before registering, go to subscription after login
+        selected_plan = self.request.session.pop('selected_plan', None)
+        if user.is_admin and selected_plan in ['MONTHLY', 'YEARLY']:
+            return reverse_lazy('subscription')
+
+        # Normal role redirects
         if user.is_student:
             return reverse_lazy('student_dashboard')
         if user.is_teacher:
@@ -69,13 +84,27 @@ class CustomLoginView(LoginView):
 
 
 class AdminRegisterView(View):
-    template_name = 'attendance/register_admin.html'
+    """
+    SaaS onboarding:
+    - Creates Organization
+    - Starts Free Trial (7 days)
+    - Creates Admin User (inactive)
+    - Sends activation email
+    """
+    template_name = 'attendance/account/register_admin.html'
 
     def dispatch(self, request, *args, **kwargs):
+        # Multi-org enabled: do not block if admins exist
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         form = AdminRegisterForm()
+
+        # Capture pre-selected plan from landing page
+        plan = request.GET.get('plan')
+        if plan in ['MONTHLY', 'YEARLY']:
+            request.session['selected_plan'] = plan
+
         return render(request, self.template_name, {'form': form})
 
     @transaction.atomic
@@ -88,19 +117,25 @@ class AdminRegisterView(View):
         try:
             email = form.cleaned_data['email'].strip().lower()
 
+            # 1) Create organization
             organization = Organization.objects.create(
                 name=form.cleaned_data['organization_name'].strip(),
                 email=email,
-                plan='FREE',
             )
 
+            # 2) Start free trial
+            if hasattr(organization, "start_trial"):
+                organization.start_trial(days=7)
+
+            # 3) Create admin user
             user = form.save(commit=False)
             user.organization = organization
-            user.username = email
+            user.username = email  # email as username
             user.email = email
             user.is_active = False
             user.save()
 
+            # 4) Send activation email
             try:
                 send_admin_activation_email(user, request)
                 messages.success(
@@ -121,6 +156,9 @@ class AdminRegisterView(View):
 
 
 class ActivateAdminAccountView(View):
+    """
+    Email activation for newly created admin
+    """
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
@@ -134,11 +172,11 @@ class ActivateAdminAccountView(View):
             messages.success(request, "Your account has been activated. You can now sign in.")
             return redirect('login')
 
-        return render(request, 'attendance/activation_invalid.html')
+        return render(request, 'attendance/account/activation_invalid.html')
 
 
 class ForcePasswordChangeView(PasswordChangeView):
-    template_name = 'attendance/force_password_change.html'
+    template_name = 'attendance/account/force_password_change.html'
     success_url = reverse_lazy('login')
 
     def form_valid(self, form):
@@ -159,7 +197,7 @@ class CustomLogoutView(LogoutView):
 
 
 class CustomPasswordResetView(PasswordResetView):
-    template_name = 'attendance/password_reset_form.html'
+    template_name = 'attendance/account/password_reset_form.html'
     email_template_name = 'attendance/emails/password_reset_email.html'
     subject_template_name = 'attendance/emails/password_reset_subject.txt'
     html_email_template_name = 'attendance/emails/password_reset_email.html'
@@ -167,11 +205,11 @@ class CustomPasswordResetView(PasswordResetView):
 
 
 class CustomPasswordResetDoneView(PasswordResetDoneView):
-    template_name = 'attendance/password_reset_done.html'
+    template_name = 'attendance/account/password_reset_done.html'
 
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
-    template_name = 'attendance/password_reset_confirm.html'
+    template_name = 'attendance/account/password_reset_confirm.html'
     success_url = reverse_lazy('password_reset_complete')
 
 
@@ -184,7 +222,7 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
 
 
 def unauthorized_view(request):
-    return render(request, 'attendance/unauthorized.html')
+    return render(request, 'attendance/account/unauthorized.html')
 
 
 @role_required(['ADMIN'])
@@ -202,3 +240,85 @@ def subscription_expired(request):
 
 def google_login_redirect(request):
     return redirect('/accounts/social/google/login/?process=login')
+
+
+
+
+@require_POST
+@role_required(['ADMIN'])
+def create_order(request):
+    plan = request.POST.get('plan')
+    if plan not in ['MONTHLY', 'YEARLY']:
+        return JsonResponse({'error': 'Invalid plan'}, status=400)
+
+    amount = 99900 if plan == "MONTHLY" else 999900
+
+    try:
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    except Exception as e:
+        return JsonResponse({'error': f'Razorpay client init failed: {str(e)}'}, status=500)
+
+    try:
+        order = client.order.create({
+            "amount": amount,
+            "currency": "INR",
+            "payment_capture": 1
+        })
+    except Exception as e:
+        # Show real reason in development
+        if settings.DEBUG:
+            return JsonResponse({'error': f'Razorpay order create failed: {str(e)}'}, status=500)
+        return JsonResponse({'error': 'Unable to create Razorpay order. Try again.'}, status=500)
+
+    org = request.user.organization
+    org.razorpay_order_id = order.get("id")
+    org.save(update_fields=["razorpay_order_id"])
+
+    return JsonResponse({
+        "key": settings.RAZORPAY_KEY_ID,
+        "order_id": order["id"],
+        "amount": amount
+    })
+
+
+@csrf_exempt
+@require_POST
+@role_required(['ADMIN'])
+def payment_success(request):
+    plan = request.POST.get("plan")
+    payment_id = request.POST.get("payment_id")
+
+    if plan not in ['MONTHLY', 'YEARLY'] or not payment_id:
+        return JsonResponse({"error": "Invalid request"}, status=400)
+
+    org = request.user.organization
+    org.razorpay_payment_id = payment_id
+    org.save(update_fields=["razorpay_payment_id"])
+
+    try:
+        if plan == "MONTHLY":
+            org.activate_monthly()
+        else:
+            org.activate_yearly()
+    except Exception:
+        return JsonResponse({"error": "Payment received but activation failed"}, status=500)
+
+    return JsonResponse({"status": "success"})
+
+
+
+
+
+@role_required(['ADMIN', 'TEACHER', 'STUDENT'])
+def account_profile(request):
+    user = request.user
+    org = getattr(user, "organization", None)
+
+    context = {
+        "profile_user": user,
+        "org": org,
+        "today": timezone.now().date(),
+        "trial_ok": org.is_trial_valid() if org and hasattr(org, "is_trial_valid") else False,
+        "sub_ok": org.is_subscription_valid() if org and hasattr(org, "is_subscription_valid") else False,
+    }
+    return render(request, "attendance/account/profile.html", context)

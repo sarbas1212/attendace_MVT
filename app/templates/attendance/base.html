@@ -84,6 +84,20 @@
     </a>
     {% endif %}
 
+    {% if user.is_authenticated %}
+    <div class="nav-section">Account</div>
+
+    <a href="{% url 'account_profile' %}" class="nav-link {% block nav_account %}{% endblock %}">
+        <i class="bi bi-person-circle"></i> Profile
+    </a>
+
+    {% if user.role == 'ADMIN' %}
+    <a href="{% url 'subscription' %}" class="nav-link {% block nav_billing %}{% endblock %}">
+        <i class="bi bi-credit-card-2-front-fill"></i> Billing / Upgrade
+    </a>
+    {% endif %}
+    {% endif %}
+
     {% endif %}
 
     <!-- Sidebar Footer -->
@@ -128,6 +142,23 @@
 
     <!-- Content Area -->
     <div class="content-area">
+        {% if user.is_authenticated and org_plan == 'FREE_TRIAL' and trial_valid %}
+        <div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center no-print">
+            <div class="small">
+                <strong>Free Trial</strong>
+                {% if trial_days_left is not None %}
+                    — {{ trial_days_left }} day{{ trial_days_left|pluralize }} left (ends {{ trial_end }})
+                {% else %}
+                    — Active
+                {% endif %}
+            </div>
+            {% if user.role == 'ADMIN' %}
+            <a href="{% url 'subscription' %}" class="btn btn-sm btn-dark fw-bold">
+                Upgrade
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
         <!-- Messages -->
         {% if messages %}
         <div class="mb-3">

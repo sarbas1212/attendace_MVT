@@ -33,40 +33,37 @@ def index(request):
         elif request.user.is_teacher:
             return redirect('teacher_dashboard')
         return redirect('dashboard')
-    return render(request, 'attendance/index.html')
+    return render(request, 'attendance/app/index.html')
 
 
-# ──────────────────────────────────────────────
-# Admin Dashboard
-# ──────────────────────────────────────────────
 @role_required(['ADMIN'])
 def dashboard(request):
-    """Admin dashboard: system-wide attendance statistics and quick actions."""
     today = timezone.now().date()
+    org = request.user.organization
 
-    # System-wide stats
-    all_students = Student.objects.filter(
-        is_active=True,
-        organization=request.user.organization
-    )
+    all_students = Student.objects.filter(is_active=True, organization=org)
     stats = get_attendance_stats(all_students, today)
 
-    # Department & teacher counts
-    total_departments = Department.objects.filter(is_active=True).count()
-    total_teachers = User.objects.filter(role='TEACHER', is_active=True).count()
+    total_departments = Department.objects.filter(is_active=True, organization=org).count()
+    total_teachers = User.objects.filter(role='TEACHER', is_active=True, organization=org).count()
 
-    # Department-wise stats
-    departments = Department.objects.filter(is_active=True).annotate(
+    departments = Department.objects.filter(is_active=True, organization=org).annotate(
         students_count=Count('students', filter=Q(students__is_active=True), distinct=True),
         teachers_count=Count('teacher_assignments', distinct=True),
     )
 
-    # Today's absentees
     recent_absentees = (
-        Absence.objects.filter(date=today, student__is_active=True)
+        Absence.objects.filter(
+            date=today,
+            student__is_active=True,
+            organization=org
+        )
         .select_related('student', 'student__department')
         .order_by('student__department__name', 'student__roll_number')
     )
+
+    if request.GET.get("subscribed") == "1":
+        messages.success(request, "Subscription activated successfully.")
 
     context = {
         'today': today,
@@ -79,7 +76,7 @@ def dashboard(request):
         'departments': departments,
         'recent_absentees': recent_absentees,
     }
-    return render(request, 'attendance/dashboard.html', context)
+    return render(request, 'attendance/app/dashboard.html', context)
 
 
 # ──────────────────────────────────────────────
@@ -142,7 +139,7 @@ def student_dashboard(request):
         'attendance_percent': attendance_percent,
         'absence_history': absence_history,
     }
-    return render(request, 'attendance/student_dashboard.html', context)
+    return render(request, 'attendance/app/student_dashboard.html', context)
 
 
 # ──────────────────────────────────────────────
@@ -194,7 +191,7 @@ def import_students(request):
         form = UploadFileForm()
 
     departments = Department.objects.filter(is_active=True)
-    return render(request, 'attendance/import.html', {
+    return render(request, 'attendance/app/import.html', {
         'form': form,
         'departments': departments,
     })
@@ -321,7 +318,7 @@ def attendance_list(request):
         'departments': Department.objects.filter(is_active=True),
         'selected_department': dept_filter,
     }
-    return render(request, 'attendance/attendance_list.html', context)
+    return render(request, 'attendance/app/attendance_list.html', context)
 
 # ──────────────────────────────────────────────
 # Absentees List (with Print support)
@@ -371,7 +368,7 @@ def absentees_list(request):
         'selected_department': dept_filter,
         'total_absent': absentees.count(),
     }
-    return render(request, 'attendance/absentees.html', context)
+    return render(request, 'attendance/app/absentees.html', context)
 
 
 # ──────────────────────────────────────────────
@@ -421,7 +418,7 @@ def students_list(request):
         'search_query': query,
         'total_count': paginator.count,
     }
-    return render(request, 'attendance/students_list.html', context)
+    return render(request, 'attendance/app/students_list.html', context)
 
 
 # ──────────────────────────────────────────────
@@ -445,7 +442,7 @@ def edit_student(request, pk):
     else:
         form = StudentEditForm(instance=student)
 
-    return render(request, 'attendance/edit_student.html', {
+    return render(request, 'attendance/app/edit_student.html', {
         'form': form,
         'student': student,
     })
@@ -476,7 +473,7 @@ def reset_student_password(request, pk):
             
         return redirect('students_list')
 
-    return render(request, 'attendance/reset_password_confirm.html', {
+    return render(request, 'attendance/app/reset_password_confirm.html', {
         'student': student,
         'default_pwd': default_pwd,
     })
@@ -505,7 +502,7 @@ def change_student_password(request, pk):
     else:
         form = StudentPasswordChangeForm()
 
-    return render(request, 'attendance/change_student_password.html', {
+    return render(request, 'attendance/app/change_student_password.html', {
         'form': form,
         'student': student,
     })
@@ -522,7 +519,7 @@ def delete_student(request, pk):
         messages.success(request, "Student removed successfully!")
         return redirect('students_list')
 
-    return render(request, 'attendance/delete_confirm.html', {
+    return render(request, 'attendance/app/delete_confirm.html', {
         'object': student,
         'object_type': 'Student',
         'cancel_url': 'students_list',
@@ -548,6 +545,6 @@ def calendar_view(request):
             'className': 'bg-danger-subtle text-danger border-danger'
         })
 
-    return render(request, 'attendance/calendar.html', {
+    return render(request, 'attendance/app/calendar.html', {
         'events': calendar_events
     })

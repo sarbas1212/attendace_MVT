@@ -24,7 +24,7 @@ def add_department(request):
     else:
         form = DepartmentForm()
 
-    return render(request, 'attendance/add_department.html', {
+    return render(request, 'attendance/department/add_department.html', {
         'form': form,
         'title': 'Add Department',
     })
@@ -46,7 +46,7 @@ def edit_department(request, pk):
     else:
         form = DepartmentForm(instance=department)
 
-    return render(request, 'attendance/add_department.html', {
+    return render(request, 'attendance/department/add_department.html', {
         'form': form,
         'title': 'Edit Department',
         'edit_mode': True,
@@ -63,7 +63,7 @@ def delete_department(request, pk):
         messages.success(request, "Department deleted successfully!")
         return redirect('list_departments')
 
-    return render(request, 'attendance/delete_confirm.html', {
+    return render(request, 'attendance/app/delete_confirm.html', {
         'object': department,
         'object_type': 'Department',
         'cancel_url': 'list_departments',
@@ -74,6 +74,6 @@ def delete_department(request, pk):
 def list_departments(request):
     """List all departments."""
     departments = Department.objects.all()
-    return render(request, 'attendance/list_departments.html', {
+    return render(request, 'attendance/department/list_departments.html', {
         'departments': departments,
     })

@@ -65,7 +65,7 @@ def teacher_dashboard(request):
         'departments': departments,
         'class_teacher_departments': class_teacher_departments,
     }
-    return render(request, 'attendance/teacher_dashboard.html', context)
+    return render(request, 'attendance/teacher/teacher_dashboard.html', context)
 
 
 # ──────────────────────────────────────────────
@@ -108,7 +108,7 @@ def add_teacher(request):
     else:
         form = TeacherCreationForm()
     
-    return render(request, 'attendance/add_teacher.html', {'form': form, 'title': 'Add Teacher'})
+    return render(request, 'attendance/teacher/add_teacher.html', {'form': form, 'title': 'Add Teacher'})
 
 @role_required(['ADMIN'])
 def edit_teacher(request, pk):
@@ -149,7 +149,7 @@ def edit_teacher(request, pk):
         }
         form = TeacherCreationForm(instance=teacher_user, initial=initial)
 
-    return render(request, 'attendance/add_teacher.html', {
+    return render(request, 'attendance/teacher/add_teacher.html', {
         'form': form,
         'title': 'Edit Teacher',
         'edit_mode': True,
@@ -167,7 +167,7 @@ def delete_teacher(request, pk):
         messages.success(request, "Teacher deleted successfully!")
         return redirect('list_teachers')
 
-    return render(request, 'attendance/delete_confirm.html', {
+    return render(request, 'attendance/app/delete_confirm.html', {
         'object': teacher_user,
         'object_type': 'Teacher',
         'cancel_url': 'list_teachers',
@@ -185,7 +185,7 @@ def list_teachers(request):
         teacher.subject_name = assignment.subject if assignment else "—"
         teacher.is_class_teacher_flag = assignment.is_class_teacher if assignment else False
 
-    return render(request, 'attendance/list_teachers.html', {'teachers': teachers})
+    return render(request, 'attendance/teacher/list_teachers.html', {'teachers': teachers})
 
 
 # ──────────────────────────────────────────────
@@ -203,6 +203,6 @@ def assign_teacher_department(request):
     else:
         form = AssignTeacherForm()
 
-    return render(request, 'attendance/assign_teacher_department.html', {
+    return render(request, 'attendance/teacher/assign_teacher_department.html', {
         'form': form,
     })

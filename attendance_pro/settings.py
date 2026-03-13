@@ -65,6 +65,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.subscription_context',
             ],
         },
     },
@@ -150,5 +151,5 @@ SOCIALACCOUNT_AUTO_SIGNUP = False
 ERP_REGION = 'IN' 
 
 
-RAZORPAY_KEY_ID = "rzp_test_SNtxrcWDmewujJ"
-RAZORPAY_KEY_SECRET = "x4K0vkDgqbmjBp4geiV6iYjpA"
+RAZORPAY_KEY_ID = "rzp_test_SQf8P0XRkTxb01"
+RAZORPAY_KEY_SECRET = "6lqVpmnyztUUn5saaRyXaG5y"
