@@ -108,7 +108,18 @@ class RoleBasedAccessMiddleware:
                 return redirect('subscription_expired')
 
         # 7) Role-based route protections
+        
+        # ═══════════════════════════════════════════════════════════════
+        # TEACHER-ACCESSIBLE ROUTES (check BEFORE admin-only prefixes!)
+        # ═══════════════════════════════════════════════════════════════
+        teacher_accessible_routes = [
+            '/teachers/dashboard/',
+        ]
 
+        if any(path == route or path.startswith(route) for route in teacher_accessible_routes):
+            if user.role not in [user.Role.ADMIN, user.Role.TEACHER]:
+                return redirect('unauthorized')
+            return self.get_response(request) 
         # Admin-only routes
         admin_prefixes = [
             '/teachers/',

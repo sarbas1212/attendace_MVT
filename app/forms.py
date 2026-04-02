@@ -50,3 +50,16 @@ class StudentPasswordChangeForm(forms.Form):
         if password and confirm and password != confirm:
             self.add_error('confirm_password', "Passwords do not match.")
         return cleaned_data
+
+
+
+class StudentPhotoForm(forms.ModelForm):
+    class Meta:
+        model = Student
+        fields = ['profile_photo']
+        widgets = {
+            'profile_photo': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+            }),
+        }

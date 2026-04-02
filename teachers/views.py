@@ -23,18 +23,26 @@ from django.conf import settings
 def teacher_dashboard(request):
     """Dashboard scoped to the logged-in teacher's assigned departments."""
     teacher = request.user
+    organization = teacher.organization # Get org
     today = timezone.now().date()
 
-    # Departments this teacher is assigned to
-    assignments = TeacherAssignment.objects.filter(teacher=teacher).select_related('department')
+    # Departments this teacher is assigned to (Filter by org)
+    assignments = TeacherAssignment.objects.filter(
+        teacher=teacher, 
+        organization=organization
+    ).select_related('department')
     departments = [a.department for a in assignments]
 
-    # Students in those departments
-    students = Student.objects.filter(department__in=departments, is_active=True)
+    # Students in those departments (Filter by org)
+    students = Student.objects.filter(
+        department__in=departments, 
+        organization=organization,
+        is_active=True
+    )
     total_students = students.count()
 
     # Today's absence stats
-    absences_today = Absence.objects.filter(date=today, student__in=students)
+    absences_today = Absence.objects.filter(date=today, student__in=students, organization=organization)
     total_absent_today = absences_today.count()
     total_present_today = total_students - total_absent_today
     attendance_percent = (
@@ -73,11 +81,13 @@ def teacher_dashboard(request):
 # ──────────────────────────────────────────────
 @role_required(['ADMIN'])
 def add_teacher(request):
+    organization = request.user.organization
+    
     if request.method == 'POST':
-        form = TeacherCreationForm(request.POST)
+        # PASS organization to form to filter dropdowns
+        form = TeacherCreationForm(request.POST, organization=organization)
         if form.is_valid():
-            # Capture both values from our custom save method
-            teacher_user, temp_password = form.save()
+            teacher_user, temp_password = form.save(organization=organization)
             
             # Send Email
             subject = "Your Attendance System Account"
@@ -106,21 +116,26 @@ def add_teacher(request):
                 
             return redirect('list_teachers')
     else:
-        form = TeacherCreationForm()
-    
+        form = TeacherCreationForm(organization=organization)
+
     return render(request, 'attendance/teacher/add_teacher.html', {'form': form, 'title': 'Add Teacher'})
 
 @role_required(['ADMIN'])
 def edit_teacher(request, pk):
     """Edit an existing teacher's profile and department assignment."""
-    teacher_user = get_object_or_404(User, pk=pk, role='TEACHER')
-    assignment = TeacherAssignment.objects.filter(teacher=teacher_user).first()
+    organization = request.user.organization
+    
+    # SECURITY: Only get teachers from THIS organization
+    teacher_user = get_object_or_404(User, pk=pk, role='TEACHER', organization=organization)
+    assignment = TeacherAssignment.objects.filter(teacher=teacher_user, organization=organization).first()
 
     if request.method == 'POST':
-        form = TeacherCreationForm(request.POST, instance=teacher_user)
+        # PASS organization to form
+        form = TeacherCreationForm(request.POST, instance=teacher_user, organization=organization)
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
+            user.organization = organization
             user.save()
 
             department = form.cleaned_data.get('department')
@@ -136,6 +151,7 @@ def edit_teacher(request, pk):
                         teacher=user,
                         department=department,
                         subject=subject,
+                        organization=organization,
                     )
             elif assignment:
                 assignment.delete()
@@ -147,7 +163,7 @@ def edit_teacher(request, pk):
             'department': assignment.department if assignment else None,
             'subject': assignment.subject if assignment else '',
         }
-        form = TeacherCreationForm(instance=teacher_user, initial=initial)
+        form = TeacherCreationForm(instance=teacher_user, initial=initial, organization=organization)
 
     return render(request, 'attendance/teacher/add_teacher.html', {
         'form': form,
@@ -155,14 +171,16 @@ def edit_teacher(request, pk):
         'edit_mode': True,
     })
 
-
 @role_required(['ADMIN'])
 def delete_teacher(request, pk):
     """Delete a teacher user and their assignments (POST-only)."""
-    teacher_user = get_object_or_404(User, pk=pk, role='TEACHER')
+    organization = request.user.organization
+    
+    # SECURITY: Only get teachers from THIS organization
+    teacher_user = get_object_or_404(User, pk=pk, role='TEACHER', organization=organization)
 
     if request.method == 'POST':
-        TeacherAssignment.objects.filter(teacher=teacher_user).delete()
+        TeacherAssignment.objects.filter(teacher=teacher_user, organization=organization).delete()
         teacher_user.delete()
         messages.success(request, "Teacher deleted successfully!")
         return redirect('list_teachers')
@@ -173,20 +191,21 @@ def delete_teacher(request, pk):
         'cancel_url': 'list_teachers',
     })
 
-
 @role_required(['ADMIN'])
 def list_teachers(request):
     """List all teacher users with their department assignments."""
-    teachers = User.objects.filter(role='TEACHER').order_by('username')
+    organization = request.user.organization
+    
+    # SECURITY: Only list teachers from THIS organization
+    teachers = User.objects.filter(role='TEACHER', organization=organization).order_by('username')
 
     for teacher in teachers:
-        assignment = TeacherAssignment.objects.filter(teacher=teacher).first()
+        assignment = TeacherAssignment.objects.filter(teacher=teacher, organization=organization).first()
         teacher.department_name = assignment.department.name if assignment else "—"
         teacher.subject_name = assignment.subject if assignment else "—"
         teacher.is_class_teacher_flag = assignment.is_class_teacher if assignment else False
 
     return render(request, 'attendance/teacher/list_teachers.html', {'teachers': teachers})
-
 
 # ──────────────────────────────────────────────
 # Assign Teacher to Department
@@ -194,14 +213,17 @@ def list_teachers(request):
 @role_required(['ADMIN'])
 def assign_teacher_department(request):
     """Assign a teacher to a department (or mark as class teacher)."""
+    organization = request.user.organization
+    
     if request.method == 'POST':
-        form = AssignTeacherForm(request.POST)
+        # PASS organization to form
+        form = AssignTeacherForm(request.POST, organization=organization)
         if form.is_valid():
-            form.save()
+            form.save(organization=organization)
             messages.success(request, "Teacher assigned successfully!")
             return redirect('list_teachers')
     else:
-        form = AssignTeacherForm()
+        form = AssignTeacherForm(organization=organization)
 
     return render(request, 'attendance/teacher/assign_teacher_department.html', {
         'form': form,

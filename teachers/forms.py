@@ -3,12 +3,12 @@ teachers/forms.py
 Forms for creating / editing teachers and assigning them to departments.
 """
 import string
-import secrets
 from django import forms
 from accounts.models import User
 from departments.models import Department
 from .models import TeacherAssignment
 from django.utils.crypto import get_random_string
+
 
 class TeacherCreationForm(forms.ModelForm):
     """
@@ -24,7 +24,7 @@ class TeacherCreationForm(forms.ModelForm):
         }),
     )
     department = forms.ModelChoiceField(
-        queryset=Department.objects.filter(is_active=True),
+        queryset=Department.objects.none(),  # Empty by default, set in __init__
         required=False,
         empty_label="— No Department Assigned —",
         widget=forms.Select(attrs={'class': 'form-select'}),
@@ -40,21 +40,38 @@ class TeacherCreationForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        # Pop organization from kwargs
+        self.organization = kwargs.pop('organization', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter departments by organization
+        if self.organization:
+            self.fields['department'].queryset = Department.objects.filter(
+                organization=self.organization,
+                is_active=True
+            )
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
+        qs = User.objects.filter(email=email)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
             raise forms.ValidationError("This email is already registered to another account.")
         return email
 
-
-    def save(self, commit=True):
+    def save(self, commit=True, organization=None):
         user = super().save(commit=False)
         
-        # Generate random secure password (10 chars)
+        # Use passed organization or the one from __init__
+        org = organization or self.organization
+        
         temp_password = get_random_string(10, allowed_chars=string.ascii_letters + string.digits)
         user.set_password(temp_password)
         
         user.role = User.Role.TEACHER
+        user.organization = org
         user.must_change_password = True
 
         if commit:
@@ -66,7 +83,10 @@ class TeacherCreationForm(forms.ModelForm):
                 TeacherAssignment.objects.update_or_create(
                     teacher=user,
                     department=department,
-                    defaults={'subject': subject},
+                    defaults={
+                        'subject': subject,
+                        'organization': org,
+                    },
                 )
         return user, temp_password
 
@@ -92,6 +112,22 @@ class AssignTeacherForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        # Pop organization from kwargs
+        self.organization = kwargs.pop('organization', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter teachers and departments by organization
+        if self.organization:
+            self.fields['teacher'].queryset = User.objects.filter(
+                organization=self.organization,
+                role=User.Role.TEACHER
+            )
+            self.fields['department'].queryset = Department.objects.filter(
+                organization=self.organization,
+                is_active=True
+            )
+
     def clean(self):
         cleaned_data = super().clean()
         department = cleaned_data.get('department')
@@ -102,7 +138,6 @@ class AssignTeacherForm(forms.ModelForm):
                 department=department,
                 is_class_teacher=True,
             )
-            # Exclude current instance when editing
             if self.instance and self.instance.pk:
                 existing = existing.exclude(pk=self.instance.pk)
 
@@ -111,3 +146,13 @@ class AssignTeacherForm(forms.ModelForm):
                     f"{department.name} already has a class teacher assigned."
                 )
         return cleaned_data
+
+    def save(self, commit=True, organization=None):
+        """Save with organization support."""
+        assignment = super().save(commit=False)
+        org = organization or self.organization
+        if org:
+            assignment.organization = org
+        if commit:
+            assignment.save()
+        return assignment

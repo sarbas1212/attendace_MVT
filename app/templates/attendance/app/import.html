@@ -1,99 +1,162 @@
 {% extends 'attendance/base.html' %}
+{% load static %}
 
 {% block title %}Import Students — Attendance Pro{% endblock %}
 {% block nav_import %}active{% endblock %}
-{% block page_title %}Import Students{% endblock %}
+{% block page_title %}Bulk Import{% endblock %}
+{% block page_subtitle %}Add students in bulk using Excel or CSV{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-white py-3">
-                <h6 class="fw-semibold mb-0">
-                    <i class="bi bi-file-earmark-arrow-up-fill text-primary me-2"></i>
-                    Import Students from File
-                </h6>
-            </div>
-            <div class="card-body">
-                <!-- Instructions -->
-                <div class="alert alert-info">
-                    <h6 class="alert-heading fw-semibold">
-                        <i class="bi bi-info-circle-fill me-1"></i> File Format
-                    </h6>
-                    <p class="mb-2">Upload an Excel (.xlsx, .xls) or CSV file with the following columns:</p>
-                    <table class="table table-sm table-bordered mb-2" style="max-width:400px;">
-                        <thead>
-                            <tr>
-                                <th>Column Name</th>
-                                <th>Required</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><code>Student Name</code></td>
-                                <td><span class="badge bg-danger">Required</span></td>
-                            </tr>
-                            <tr>
-                                <td><code>Roll Number</code></td>
-                                <td><span class="badge bg-danger">Required</span></td>
-                            </tr>
-                            <tr>
-                                <td><code>Email</code></td>
-                                <td><span class="badge bg-danger">Required</span></td>
-                            </tr>
-                            <tr>
-                                <td><code>Date of Birth</code></td>
-                                <td><span class="badge bg-danger">Required</span></td>
-                            </tr>
-                            <tr>
-                                <td><code>Parent Phone</code></td>
-                                <td><span class="badge bg-secondary">Optional</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <small class="text-muted">
-                        Duplicate roll numbers will be updated (not duplicated).
-                    </small>
+<div class="container-xxl mt-4">
+    <div class="row g-4">
+        
+        <!-- Left Column: Instructions & Guide -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-question-lg text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0">File Guide</h5>
+                            <p class="text-muted small mb-0">What to prepare</p>
+                        </div>
+                    </div>
+
+                    <p class="text-muted mb-4">
+                        To ensure a successful import, please ensure your Excel or CSV file contains the following columns as headers in the first row.
+                    </p>
+
+                    <!-- Required Columns List -->
+                    <h6 class="fw-semibold text-dark mb-3 text-uppercase small ls-1">Required Columns</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <span class="badge bg-light border text-dark px-3 py-2">
+                            <code>Student Name</code>
+                        </span>
+                        <span class="badge bg-light border text-dark px-3 py-2">
+                            <code>Roll Number</code>
+                        </span>
+                        <span class="badge bg-light border text-dark px-3 py-2">
+                            <code>Email</code>
+                        </span>
+                        <span class="badge bg-light border text-dark px-3 py-2">
+                            <code>DOB</code>
+                        </span>
+                    </div>
+
+                    <!-- Optional Columns List -->
+                    <h6 class="fw-semibold text-dark mb-3 text-uppercase small ls-1">Optional Columns</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <span class="badge bg-light text-muted border px-3 py-2">
+                            <code>Phone</code>
+                        </span>
+                        <span class="badge bg-light text-muted border px-3 py-2">
+                            <code>Parent Phone</code>
+                        </span>
+                    </div>
+
+                    <div class="alert alert-light border border-light bg-white text-muted small mb-0">
+                        <i class="bi bi-lightning-fill text-warning me-1"></i>
+                        <strong>Tip:</strong> Duplicate roll numbers will automatically update existing student data.
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Upload Form -->
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
+        <!-- Right Column: Import Form -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pb-0 pt-4 px-4">
+                    <h4 class="fw-bold mb-1">Import Details</h4>
+                    <p class="text-muted small">Select the target department and upload your data file.</p>
+                </div>
+                
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
 
-                    {% if user.role == 'ADMIN' %}
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-building me-1"></i> Department
-                        </label>
-                        <select name="department" class="form-select" required>
-                            <option value="">— Select Department —</option>
-                            {% for dept in departments %}
-                            <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-secondary py-2">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Students will be imported into <strong>your assigned department</strong>.
-                    </div>
-                    {% endif %}
+                        {% if user.role == 'ADMIN' %}
+                        <!-- Department Selector -->
+                        <div class="mb-4">
+                            <label for="department" class="form-label fw-semibold text-dark">
+                                Target Department
+                            </label>
+                            <select name="department" id="department" class="form-select form-select-lg border-light shadow-sm" required>
+                                <option value="" disabled selected>Choose a department to add students to...</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }} <span class="text-muted">({{ dept.code }})</span></option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-file-earmark me-1"></i> Select File
-                        </label>
-                        {{ form.file }}
-                    </div>
+                        {% if user.role == 'TEACHER' %}
+                        <div class="alert alert-primary bg-opacity-10 border-primary d-flex align-items-center mb-4">
+                            <i class="bi bi-shield-check-fill me-2"></i>
+                            <div class="small">
+                                Students will be imported into <strong>your assigned department</strong>.
+                            </div>
+                        </div>
+                        {% endif %}
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-cloud-arrow-up me-2"></i> Upload & Import
-                        </button>
-                    </div>
-                </form>
+                        <!-- File Upload Area -->
+                        <div class="mb-5">
+                            <label class="form-label fw-semibold text-dark mb-2">
+                                Upload Data File
+                            </label>
+                            <div class="dropzone-area border border-2 border-dashed border-light rounded-4 p-5 text-center bg-light-hover transition position-relative">
+                                <input type="file" name="file" id="file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" required accept=".xlsx,.xls,.csv">
+                                
+                                <div class="upload-placeholder">
+                                    <div class="mb-3">
+                                        <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 3rem;"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1 text-dark">Click to upload or drag file here</h6>
+                                    <p class="text-muted small mb-2">Supports .XLSX, .XLS, or .CSV files</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="{% url 'select_department' %}" class="btn btn-light text-muted fw-medium">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5 py-2 fw-semibold rounded-pill shadow-sm">
+                                Import Students
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dropzone-area {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        background-color: #f8f9fa;
+    }
+
+    .dropzone-area:hover {
+        background-color: #f1f3f5;
+        border-color: #0d6efd !important;
+    }
+
+    /* Custom Scrollbar for list if needed */
+    .badge code {
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 0.8rem;
+    }
+
+    /* Utility for letter spacing */
+    .ls-1 {
+        letter-spacing: 0.05em;
+    }
+</style>
 {% endblock %}

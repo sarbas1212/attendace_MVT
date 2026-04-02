@@ -1,0 +1,85 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}{{ student.student_name }} — Details{% endblock %}
+{% block page_title %}Student Details{% endblock %}
+{% block page_subtitle %}{{ student.department.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <!-- Back Link -->
+        <a href="{% url 'students_list' dept_id=student.department_id %}" class="text-decoration-none text-muted mb-3 d-inline-block">
+            <i class="bi bi-arrow-left me-1"></i> Back to Students
+        </a>
+        
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    {% if student.profile_photo and student.profile_photo.url %}
+                    <img src="{{ student.profile_photo.url }}" alt="{{ student.student_name }}" 
+                         class="rounded-circle mb-3 border shadow-sm" 
+                         style="width: 120px; height: 120px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3 shadow-sm"
+                         style="width: 120px; height: 120px; font-size: 2.5rem; font-weight: 700;">
+                        {{ student.student_name|make_list|first|upper }}
+                    </div>
+                    {% endif %}
+                    <h4 class="mb-1 fw-bold">{{ student.student_name }}</h4>
+                    <span class="badge bg-primary px-3 py-2 fs-6">{{ student.roll_number }}</span>
+                </div>
+
+                <!-- Details -->
+                <div class="border-top pt-4">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase mb-1">Department</div>
+                            <div class="fw-medium">{{ student.department.name }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase mb-1">Date of Birth</div>
+                            <div class="fw-medium">{{ student.date_of_birth|date:"d M Y"|default:"—" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase mb-1">Email</div>
+                            <div class="fw-medium text-break">{{ student.email|default:"—" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase mb-1">Phone</div>
+                            <div class="fw-medium">{{ student.phone|default:"—" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase mb-1">Parent Contact</div>
+                            <div class="fw-medium">{{ student.parent_contact|default:"—" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase mb-1">Total Absences</div>
+                            <div class="fw-medium">
+                                <span class="badge bg-{% if total_absences > 0 %}danger{% else %}success{% endif %}-subtle text-{% if total_absences > 0 %}danger{% else %}success{% endif %}">
+                                    {{ total_absences }} days
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="border-top pt-4 mt-4">
+                    <div class="d-flex gap-2 flex-wrap justify-content-center">
+                        <a href="{% url 'edit_student' pk=student.pk %}" class="btn btn-primary">
+                            <i class="bi bi-pencil me-1"></i> Edit Student
+                        </a>
+                        <a href="{% url 'upload_student_photo' pk=student.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-camera me-1"></i> Upload Photo
+                        </a>
+                        <a href="{% url 'change_student_password' pk=student.pk %}" class="btn btn-outline-info">
+                            <i class="bi bi-key me-1"></i> Set Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

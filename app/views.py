@@ -16,7 +16,7 @@ from accounts.models import User
 from departments.models import Department
 from teachers.models import TeacherAssignment
 from .models import Absence, AttendanceSession, Student
-from .forms import UploadFileForm, StudentEditForm, StudentPasswordChangeForm
+from .forms import UploadFileForm, StudentEditForm, StudentPasswordChangeForm,StudentPhotoForm
 from .services import get_attendance_stats, import_students_from_file, mark_attendance_for_date
 
 from django.http import HttpResponseRedirect
@@ -24,6 +24,12 @@ from django.http import HttpResponseRedirect
 from .utils import is_working_day
 import holidays
 from django.conf import settings
+
+from django.views.generic import UpdateView
+
+from django.http import JsonResponse
+
+from django.urls import path, include, reverse
 
 
 def index(request):
@@ -141,16 +147,10 @@ def student_dashboard(request):
     }
     return render(request, 'attendance/app/student_dashboard.html', context)
 
-
-# ──────────────────────────────────────────────
-# Import Students from Excel/CSV
-# ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
 def import_students(request):
     """
     Import students from an Excel/CSV file.
-    - Teachers can only import into their assigned department.
-    - Admins can choose any department.
     """
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
@@ -169,10 +169,12 @@ def import_students(request):
                 if not department_id:
                     messages.error(request, "Please select a department.")
                     return redirect('import_students')
-                department = get_object_or_404(Department, id=department_id)
+                # Add organization check for security
+                department = get_object_or_404(Department, id=department_id, organization=request.user.organization)
 
-            # Use service function for import
-            result = import_students_from_file(file, department)
+            # Pass organization to service function
+            organization = request.user.organization
+            result = import_students_from_file(file, department, organization)
 
             if result['errors']:
                 for error in result['errors']:
@@ -186,16 +188,22 @@ def import_students(request):
             elif not result['errors']:
                 messages.info(request, "No students were imported.")
 
-            return redirect('students_list')
+            # Redirect to the specific department's student list
+            return redirect('students_list', dept_id=department.id)
     else:
+        # IMPORTANT: Initialize form for GET requests (page load)
         form = UploadFileForm()
 
-    departments = Department.objects.filter(is_active=True)
+    # FIX: Filter departments by organization for security
+    departments = Department.objects.filter(
+        is_active=True,
+        organization=request.user.organization
+    )
+
     return render(request, 'attendance/app/import.html', {
         'form': form,
         'departments': departments,
     })
-
 
 # ──────────────────────────────────────────────
 # Attendance Marking
@@ -204,9 +212,9 @@ def import_students(request):
 def attendance_list(request):
     """
     Mark / view attendance for a given date.
-    Enforces 'Working Day' rules and creates 'Attendance Sessions'.
     """
     today = timezone.now().date()
+    organization = request.user.organization  # <-- Get organization early
 
     # 1. BUILD STUDENT QUERYSET (Role-based)
     if request.user.is_teacher:
@@ -214,12 +222,14 @@ def attendance_list(request):
             teacher=request.user
         ).values_list('department_id', flat=True)
         students = Student.objects.filter(
-            department_id__in=teacher_dept_ids, is_active=True
+            department_id__in=teacher_dept_ids, 
+            is_active=True,
+            organization=organization  # <-- Filter by org
         ).select_related('department')
     else:
         students = Student.objects.filter(
             is_active=True,
-            organization=request.user.organization
+            organization=organization
         ).select_related('department')
 
     # Department filter (Admin only)
@@ -236,7 +246,6 @@ def attendance_list(request):
             selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
         except ValueError:
             selected_date = today
-        # Prevent marking future attendance
         if selected_date > today:
             selected_date = today
     else:
@@ -247,7 +256,6 @@ def attendance_list(request):
 
     # 4. HANDLE POST (Attendance Submission)
     if request.method == "POST":
-        # Block marking if it's a Sunday/Holiday
         if not is_workday:
             messages.error(request, f"Access Denied: Attendance cannot be recorded for a {reason}.")
             return redirect(f"{request.path}?date={selected_date.strftime('%Y-%m-%d')}")
@@ -258,52 +266,59 @@ def attendance_list(request):
             if status == "absent":
                 absent_ids.add(student.id)
 
-        # A. Save Absences
-        mark_attendance_for_date(students, absent_ids, selected_date, marked_by=request.user)
+        # A. Save Absences - WITH ORGANIZATION
+        mark_attendance_for_date(
+            students, 
+            absent_ids, 
+            selected_date, 
+            marked_by=request.user,
+            organization=organization  # <-- FIXED
+        )
 
-        # B. CREATE ERP ATTENDANCE SESSION
-        # This record is what the system uses to calculate "Total Working Days"
+        # B. CREATE ATTENDANCE SESSION
         if request.user.is_teacher:
-            # Teacher marks for all their assigned departments
             my_depts = TeacherAssignment.objects.filter(teacher=request.user).values_list('department_id', flat=True)
             for d_id in my_depts:
                 AttendanceSession.objects.update_or_create(
                     date=selected_date, 
                     department_id=d_id,
+                    organization=organization,  # <-- ADD THIS TOO
                     defaults={'marked_by': request.user}
                 )
         else:
-            # Admin marks for a specific department if filter is active
             if dept_filter:
                 AttendanceSession.objects.update_or_create(
                     date=selected_date, 
                     department_id=dept_filter,
+                    organization=organization,  # <-- ADD THIS TOO
                     defaults={'marked_by': request.user}
                 )
             else:
-                # If admin marks 'All Students', find every dept in the current student list
                 affected_depts = students.values_list('department_id', flat=True).distinct()
                 for d_id in affected_depts:
                     AttendanceSession.objects.update_or_create(
                         date=selected_date, 
                         department_id=d_id,
+                        organization=organization,  # <-- ADD THIS TOO
                         defaults={'marked_by': request.user}
                     )
 
-        messages.success(request, f"Attendance officially finalized for {selected_date.strftime('%d %b %Y')}")
+        messages.success(request, f"Attendance saved for {selected_date.strftime('%d %b %Y')}")
         return redirect(f"{request.path}?date={selected_date.strftime('%Y-%m-%d')}")
 
     # 5. PREPARE CONTEXT DATA
     absent_ids = set(
         Absence.objects.filter(
-            date=selected_date, student__in=students
+            date=selected_date, 
+            student__in=students,
+            organization=organization  # <-- ADD THIS
         ).values_list('student_id', flat=True)
     )
 
-    # Check if an official session exists for the departments currently being viewed
     session_exists = AttendanceSession.objects.filter(
         date=selected_date, 
-        department_id__in=students.values_list('department_id', flat=True)
+        department_id__in=students.values_list('department_id', flat=True),
+        organization=organization  # <-- ADD THIS
     ).exists()
 
     context = {
@@ -315,7 +330,7 @@ def attendance_list(request):
         'holiday_reason': reason if not is_workday else None,
         'session_exists': session_exists,
         'stats': get_attendance_stats(students, selected_date),
-        'departments': Department.objects.filter(is_active=True),
+        'departments': Department.objects.filter(is_active=True, organization=organization),
         'selected_department': dept_filter,
     }
     return render(request, 'attendance/app/attendance_list.html', context)
@@ -370,95 +385,246 @@ def absentees_list(request):
     }
     return render(request, 'attendance/app/absentees.html', context)
 
-
 # ──────────────────────────────────────────────
-# Students List
+# Department Selection for Students
 # ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
-def students_list(request):
-    """List students with search, department filter, and pagination."""
-    query = request.GET.get('q', '')
-    dept_filter = request.GET.get('department', '')
+def select_department(request):
+    """Show departments to select for viewing students."""
+    organization = request.user.organization
 
-    students = Student.objects.filter(
-            is_active=True,
-            organization=request.user.organization
-        ).select_related('department')
-
-    # Teachers see only their department's students
+    # Teachers: only assigned departments
     if request.user.is_teacher:
         teacher_dept_ids = TeacherAssignment.objects.filter(
-            teacher=request.user
+            teacher=request.user,
+            organization=organization
         ).values_list('department_id', flat=True)
-        students = students.filter(department_id__in=teacher_dept_ids)
 
+        departments = Department.objects.filter(
+            id__in=teacher_dept_ids,
+            organization=organization,
+            is_active=True
+        )
+    else:
+        # Admin: all departments in their org
+        departments = Department.objects.filter(
+            organization=organization,
+            is_active=True
+        )
+
+    # IMPORTANT: Department -> Student related name is "students"
+    departments = departments.annotate(
+        student_count=Count(
+            'students',
+            filter=Q(students__is_active=True, students__organization=organization)
+        )
+    ).order_by('name')
+
+    total_students = Student.objects.filter(
+        organization=organization,
+        is_active=True
+    ).count()
+
+    return render(request, 'attendance/app/select_department.html', {
+        'departments': departments,
+        'total_students': total_students,
+    })
+
+# ──────────────────────────────────────────────
+# Students List (Department-specific)
+# ──────────────────────────────────────────────
+@role_required(['ADMIN', 'TEACHER'])
+def students_list(request, dept_id=None):
+    """List students for a specific department."""
+    organization = request.user.organization
+    query = request.GET.get('q', '')
+    
+    # Get the department
+    if dept_id:
+        department = get_object_or_404(
+            Department, 
+            pk=dept_id, 
+            organization=organization,
+            is_active=True
+        )
+    else:
+        # Redirect to department selection if no dept_id
+        return redirect('select_department')
+    
+    # Teachers can only view their assigned departments
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user,
+            organization=organization
+        ).values_list('department_id', flat=True)
+        
+        if department.id not in teacher_dept_ids:
+            messages.error(request, "You don't have access to this department.")
+            return redirect('select_department')
+    
+    # Get students in this department
+    students = Student.objects.filter(
+        department=department,
+        organization=organization,
+        is_active=True
+    ).order_by('roll_number')
+    
     # Search
     if query:
         students = students.filter(
             Q(student_name__icontains=query) |
             Q(roll_number__icontains=query)
         )
-
-    # Department filter
-    if dept_filter:
-        students = students.filter(department_id=dept_filter)
-
-    students = students.order_by('department__name', 'roll_number')
-
+    
     # Pagination
-    paginator = Paginator(students, 15)
+    paginator = Paginator(students, 25)  # More per page since compact
     page_obj = paginator.get_page(request.GET.get('page'))
-
-    departments = Department.objects.filter(is_active=True)
-
-    context = {
+    
+    return render(request, 'attendance/app/students_list.html', {
         'page_obj': page_obj,
-        'departments': departments,
-        'selected_department': dept_filter,
+        'department': department,
         'search_query': query,
         'total_count': paginator.count,
-    }
-    return render(request, 'attendance/app/students_list.html', context)
+    })
 
 
 # ──────────────────────────────────────────────
-# Student Edit / Delete
+# Student Detail (AJAX/Modal)
+# ──────────────────────────────────────────────
+@role_required(['ADMIN', 'TEACHER'])
+def student_detail(request, pk):
+    """Get student details."""
+    organization = request.user.organization
+    student = get_object_or_404(Student, pk=pk, organization=organization, is_active=True)
+    
+    # Check teacher permission
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user,
+            organization=organization
+        ).values_list('department_id', flat=True)
+        
+        if student.department_id not in teacher_dept_ids:
+            messages.error(request, "You don't have access to this student.")
+            return redirect('select_department')
+    
+    # Get attendance stats
+    total_absences = Absence.objects.filter(student=student).count()
+    
+    # Check if AJAX request (for modal) or regular request (for full page)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'attendance/app/student_detail_modal.html', {
+            'student': student,
+            'total_absences': total_absences,
+        })
+    
+    return render(request, 'attendance/app/student_detail.html', {
+        'student': student,
+        'total_absences': total_absences,
+    })
+
+
+# ──────────────────────────────────────────────
+# Student Edit
 # ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
 def edit_student(request, pk):
     """Edit a student's details via ModelForm."""
-    student = get_object_or_404(Student, pk=pk)
+    organization = request.user.organization
+    student = get_object_or_404(Student, pk=pk, organization=organization)
+    
+    # Check teacher permission
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user,
+            organization=organization
+        ).values_list('department_id', flat=True)
+        
+        if student.department_id not in teacher_dept_ids:
+            messages.error(request, "You don't have permission to edit this student.")
+            return redirect('select_department')
+
+    # Prepare Cancel URL
+    cancel_url = reverse('students_list', kwargs={'dept_id': student.department_id})
 
     if request.method == "POST":
         form = StudentEditForm(request.POST, instance=student)
         if form.is_valid():
             student = form.save()
-            # Ensure User account is synced
             from .services import sync_student_user
-            sync_student_user(student)
+            sync_student_user(student, organization)
             
             messages.success(request, f"Student {student.student_name} updated successfully!")
-            return redirect('students_list')
+            return redirect('students_list', dept_id=student.department_id)
     else:
         form = StudentEditForm(instance=student)
 
     return render(request, 'attendance/app/edit_student.html', {
         'form': form,
         'student': student,
+        'cancel_url': cancel_url,
     })
 
 
+# ──────────────────────────────────────────────
+# Upload Student Photo
+# ──────────────────────────────────────────────
+@role_required(['ADMIN', 'TEACHER'])
+def upload_student_photo(request, pk):
+    organization = request.user.organization
+    student = get_object_or_404(Student, pk=pk, organization=organization)
+
+    # Check teacher permission
+    if request.user.is_teacher:
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user,
+            organization=organization
+        ).values_list('department_id', flat=True)
+
+        if student.department_id not in teacher_dept_ids:
+            messages.error(request, "You don't have permission to upload photo for this student.")
+            return redirect('select_department')
+
+    # IMPORTANT: Calculate Cancel URL
+    cancel_url = reverse('students_list', kwargs={'dept_id': student.department_id})
+
+    if request.method == 'POST':
+        form = StudentPhotoForm(request.POST, request.FILES, instance=student)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Photo uploaded for {student.student_name}!")
+            return redirect('students_list', dept_id=student.department_id)
+        else:
+            print(f"Form errors: {form.errors}")
+            messages.error(request, f"Error: {form.errors}")
+    else:
+        form = StudentPhotoForm(instance=student)
+
+    return render(request, 'attendance/app/upload_photo.html', {
+        'form': form,
+        'student': student,
+        'cancel_url': cancel_url,  # <-- PASS THIS TO TEMPLATE
+    })
+
+# ──────────────────────────────────────────────
+# Reset Student Password
+# ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
 def reset_student_password(request, pk):
-    """Reset a student's password back to the default format: firstname@YearofBirth (POST-only)."""
-    student = get_object_or_404(Student, pk=pk)
+    """Reset a student's password back to the default format."""
+    organization = request.user.organization
+    student = get_object_or_404(Student, pk=pk, organization=organization)
     
-    # Teachers can only reset passwords for students in their department
+    # Check teacher permission
     if request.user.is_teacher:
-        teacher_dept_ids = TeacherAssignment.objects.filter(teacher=request.user).values_list('department_id', flat=True)
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user,
+            organization=organization
+        ).values_list('department_id', flat=True)
+        
         if student.department_id not in teacher_dept_ids:
             messages.error(request, "You do not have permission to reset this student's password.")
-            return redirect('students_list')
+            return redirect('select_department')
 
     first_name = student.student_name.split()[0] if student.student_name else "student"
     default_pwd = f"{first_name.lower()}@{student.date_of_birth.year}" if student.date_of_birth else None
@@ -468,65 +634,85 @@ def reset_student_password(request, pk):
             messages.error(request, f"Cannot reset password for {student.student_name} because Date of Birth is missing.")
         else:
             from .services import sync_student_user
-            sync_student_user(student, password_raw=default_pwd)
+            sync_student_user(student, organization, password_raw=default_pwd)
             messages.success(request, f"Password for {student.student_name} reset to: {default_pwd}")
             
-        return redirect('students_list')
+        return redirect('students_list', dept_id=student.department_id)
+
+    # Prepare Cancel URL
+    cancel_url = reverse('students_list', kwargs={'dept_id': student.department_id})
 
     return render(request, 'attendance/app/reset_password_confirm.html', {
         'student': student,
         'default_pwd': default_pwd,
+        'cancel_url': cancel_url,
     })
 
-
+# ──────────────────────────────────────────────
+# Change Student Password
+# ──────────────────────────────────────────────
 @role_required(['ADMIN', 'TEACHER'])
 def change_student_password(request, pk):
     """Manually set a student's password."""
-    student = get_object_or_404(Student, pk=pk)
+    organization = request.user.organization
+    student = get_object_or_404(Student, pk=pk, organization=organization)
     
-    # Teachers can only change passwords for students in their department
+    # Check teacher permission
     if request.user.is_teacher:
-        teacher_dept_ids = TeacherAssignment.objects.filter(teacher=request.user).values_list('department_id', flat=True)
+        teacher_dept_ids = TeacherAssignment.objects.filter(
+            teacher=request.user,
+            organization=organization
+        ).values_list('department_id', flat=True)
+        
         if student.department_id not in teacher_dept_ids:
             messages.error(request, "You do not have permission to change this student's password.")
-            return redirect('students_list')
+            return redirect('select_department')
+
+    # Prepare Cancel URL
+    cancel_url = reverse('students_list', kwargs={'dept_id': student.department_id})
 
     if request.method == 'POST':
         form = StudentPasswordChangeForm(request.POST)
         if form.is_valid():
             from .services import sync_student_user
             new_pwd = form.cleaned_data['new_password']
-            sync_student_user(student, password_raw=new_pwd)
+            sync_student_user(student, organization, password_raw=new_pwd)
             messages.success(request, f"Password for {student.student_name} updated successfully!")
-            return redirect('students_list')
+            return redirect('students_list', dept_id=student.department_id)
     else:
         form = StudentPasswordChangeForm()
 
     return render(request, 'attendance/app/change_student_password.html', {
         'form': form,
         'student': student,
+        'cancel_url': cancel_url,
     })
 
 
+# ──────────────────────────────────────────────
+# Delete Student
+# ──────────────────────────────────────────────
 @role_required(['ADMIN'])
 def delete_student(request, pk):
     """Soft-delete a student (POST-only)."""
-    student = get_object_or_404(Student, pk=pk)
+    organization = request.user.organization
+    student = get_object_or_404(Student, pk=pk, organization=organization)
+    dept_id = student.department_id
 
     if request.method == 'POST':
         student.is_active = False
         student.save()
         messages.success(request, "Student removed successfully!")
-        return redirect('students_list')
+        return redirect('students_list', dept_id=dept_id)
+
+    # FIX: Calculate full URL for Cancel button
+    cancel_url = reverse('students_list', kwargs={'dept_id': dept_id})
 
     return render(request, 'attendance/app/delete_confirm.html', {
         'object': student,
         'object_type': 'Student',
-        'cancel_url': 'students_list',
+        'cancel_url': cancel_url,
     })
-
-
-
 
 @role_required(['ADMIN', 'TEACHER'])
 def calendar_view(request):
@@ -548,3 +734,71 @@ def calendar_view(request):
     return render(request, 'attendance/app/calendar.html', {
         'events': calendar_events
     })
+
+
+
+# app/views.py
+
+from django.http import JsonResponse
+
+@role_required(['ADMIN'])
+def test_s3_config(request):
+    """Debug view to test S3 configuration."""
+    from django.conf import settings
+    from app.models import Student
+    
+    # Get a student with photo
+    student_with_photo = Student.objects.filter(
+        profile_photo__isnull=False
+    ).exclude(profile_photo='').first()
+    
+    data = {
+        'AWS_STORAGE_BUCKET_NAME': settings.AWS_STORAGE_BUCKET_NAME,
+        'AWS_S3_REGION_NAME': settings.AWS_S3_REGION_NAME,
+        'AWS_S3_CUSTOM_DOMAIN': getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', 'Not set'),
+        'DEFAULT_FILE_STORAGE': settings.DEFAULT_FILE_STORAGE,
+        'MEDIA_URL': settings.MEDIA_URL,
+    }
+    
+    if student_with_photo:
+        data['sample_student'] = student_with_photo.student_name
+        data['photo_field_value'] = str(student_with_photo.profile_photo)
+        try:
+            data['photo_url'] = student_with_photo.profile_photo.url
+        except Exception as e:
+            data['photo_url_error'] = str(e)
+    else:
+        data['note'] = 'No students with photos found'
+    
+    return JsonResponse(data, json_dumps_params={'indent': 2})
+
+
+
+from django.http import HttpResponse
+
+@role_required(['ADMIN'])
+def debug_student_photos(request):
+    """Debug view to check student photos."""
+    from app.models import Student
+    
+    html = "<h1>Student Photos Debug</h1><table border='1' cellpadding='10'>"
+    html += "<tr><th>ID</th><th>Name</th><th>Photo Field</th><th>Photo URL</th><th>Preview</th></tr>"
+    
+    for student in Student.objects.all()[:10]:
+        photo_field = str(student.profile_photo) if student.profile_photo else "None"
+        try:
+            photo_url = student.profile_photo.url if student.profile_photo else "None"
+        except Exception as e:
+            photo_url = f"Error: {e}"
+        
+        preview = ""
+        if student.profile_photo:
+            try:
+                preview = f'<img src="{student.profile_photo.url}" width="50" height="50" style="object-fit: cover; border-radius: 50%;">'
+            except:
+                preview = "Error loading"
+        
+        html += f"<tr><td>{student.pk}</td><td>{student.student_name}</td><td>{photo_field}</td><td style='word-break: break-all; max-width: 300px;'>{photo_url}</td><td>{preview}</td></tr>"
+    
+    html += "</table>"
+    return HttpResponse(html)

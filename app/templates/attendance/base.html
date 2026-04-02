@@ -17,6 +17,8 @@
 
     <!-- Custom CSS -->
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
 
@@ -25,97 +27,116 @@
 
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
+    <!-- Brand Logo -->
     <div class="brand">
-        <i class="bi bi-mortarboard-fill"></i> Attendance Pro
+        <div class="brand-icon">
+            <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-text">Attendance Pro</span>
     </div>
 
     {% if user.is_authenticated and user.role != 'STUDENT' %}
     
-    <!-- SECTION: MAIN -->
-    <div class="nav-section">Main</div>
+    <!-- Navigation Menu -->
+    <div class="sidebar-nav">
+        <!-- SECTION: MAIN -->
+        <div class="nav-section">Main</div>
 
-    {% if user.role == 'ADMIN' %}
-    <a href="{% url 'dashboard' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
-        <i class="bi bi-grid-1x2-fill"></i> Dashboard
-    </a>
-    {% endif %}
+        {% if user.role == 'ADMIN' %}
+        <a href="{% url 'dashboard' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
+            <i class="bi bi-grid-1x2-fill"></i>
+            <span>Dashboard</span>
+        </a>
+        {% endif %}
 
-    {% if user.role == 'TEACHER' %}
-    <a href="{% url 'teacher_dashboard' %}" class="nav-link {% block nav_teacher_dashboard %}{% endblock %}">
-        <i class="bi bi-grid-1x2-fill"></i> Dashboard
-    </a>
-    {% endif %}
+        {% if user.role == 'TEACHER' %}
+        <a href="{% url 'teacher_dashboard' %}" class="nav-link {% block nav_teacher_dashboard %}{% endblock %}">
+            <i class="bi bi-grid-1x2-fill"></i>
+            <span>Dashboard</span>
+        </a>
+        {% endif %}
 
-    <a href="{% url 'attendance_list' %}" class="nav-link {% block nav_attendance %}{% endblock %}">
-        <i class="bi bi-calendar-check-fill"></i> Mark Attendance
-    </a>
-    <a href="{% url 'absentees_list' %}" class="nav-link {% block nav_absentees %}{% endblock %}">
-        <i class="bi bi-person-x-fill"></i> Absentees
-    </a>
+        <a href="{% url 'attendance_list' %}" class="nav-link {% block nav_attendance %}{% endblock %}">
+            <i class="bi bi-calendar-check-fill"></i>
+            <span>Mark Attendance</span>
+        </a>
+        <a href="{% url 'absentees_list' %}" class="nav-link {% block nav_absentees %}{% endblock %}">
+            <i class="bi bi-person-x-fill"></i>
+            <span>Absentees</span>
+        </a>
 
-    <!-- SECTION: STUDENTS -->
-    <div class="nav-section">Students</div>
-    <a href="{% url 'students_list' %}" class="nav-link {% block nav_students %}{% endblock %}">
-        <i class="bi bi-people-fill"></i> All Students
-    </a>
-    <a href="{% url 'import_students' %}" class="nav-link {% block nav_import %}{% endblock %}">
-        <i class="bi bi-file-earmark-arrow-up-fill"></i> Import Students
-    </a>
+        <!-- SECTION: STUDENTS -->
+        <div class="nav-section">Students</div>
+        <a href="{% url 'select_department' %}" class="nav-link {% block nav_students %}{% endblock %}">
+            <i class="bi bi-people-fill"></i>
+            <span>All Students</span>
+        </a>
+        <a href="{% url 'import_students' %}" class="nav-link {% block nav_import %}{% endblock %}">
+            <i class="bi bi-file-earmark-arrow-up-fill"></i>
+            <span>Import Students</span>
+        </a>
 
-    <!-- SECTION: MANAGEMENT (Admin Only) -->
-    {% if user.role == 'ADMIN' %}
-    <div class="nav-section">Management</div>
-    <a href="{% url 'list_departments' %}" class="nav-link {% block nav_departments %}{% endblock %}">
-        <i class="bi bi-building-fill"></i> Departments
-    </a>
-    <a href="{% url 'list_teachers' %}" class="nav-link {% block nav_teachers %}{% endblock %}">
-        <i class="bi bi-person-badge-fill"></i> Teachers
-    </a>
-    {% endif %}
+        <!-- SECTION: MANAGEMENT (Admin Only) -->
+        {% if user.role == 'ADMIN' %}
+        <div class="nav-section">Management</div>
+        <a href="{% url 'list_departments' %}" class="nav-link {% block nav_departments %}{% endblock %}">
+            <i class="bi bi-building-fill"></i>
+            <span>Departments</span>
+        </a>
+        <a href="{% url 'list_teachers' %}" class="nav-link {% block nav_teachers %}{% endblock %}">
+            <i class="bi bi-person-badge-fill"></i>
+            <span>Teachers</span>
+        </a>
+        {% endif %}
 
-    <!-- SECTION: REPORTS (Admin & Teacher) -->
-    <div class="nav-section">Reports</div>
-    <a href="{% url 'reports_hub' %}" class="nav-link {% block nav_reports %}{% endblock %}">
-        <i class="bi bi-bar-chart-line-fill"></i>Reports
-    </a>
-    {% if user.role != 'STUDENT' %}
-    <a href="{% url 'calendar' %}" class="nav-link {% block nav_calendar %}{% endblock %}">
-        <i class="bi bi-calendar3"></i> Calendar
-    </a>
-    {% endif %}
+        <!-- SECTION: REPORTS -->
+        <div class="nav-section">Reports</div>
+        <a href="{% url 'reports_hub' %}" class="nav-link {% block nav_reports %}{% endblock %}">
+            <i class="bi bi-bar-chart-line-fill"></i>
+            <span>Reports</span>
+        </a>
+        {% if user.role != 'STUDENT' %}
+        <a href="{% url 'calendar' %}" class="nav-link {% block nav_calendar %}{% endblock %}">
+            <i class="bi bi-calendar3"></i>
+            <span>Calendar</span>
+        </a>
+        {% endif %}
 
-    {% if user.is_authenticated %}
-    <div class="nav-section">Account</div>
-
-    <a href="{% url 'account_profile' %}" class="nav-link {% block nav_account %}{% endblock %}">
-        <i class="bi bi-person-circle"></i> Profile
-    </a>
-
-    {% if user.role == 'ADMIN' %}
-    <a href="{% url 'subscription' %}" class="nav-link {% block nav_billing %}{% endblock %}">
-        <i class="bi bi-credit-card-2-front-fill"></i> Billing / Upgrade
-    </a>
-    {% endif %}
-    {% endif %}
+        <!-- SECTION: ACCOUNT -->
+        {% if user.is_authenticated %}
+        <div class="nav-section">Account</div>
+        <a href="{% url 'account_profile' %}" class="nav-link {% block nav_account %}{% endblock %}">
+            <i class="bi bi-person-circle"></i>
+            <span>Profile</span>
+        </a>
+        {% if user.role == 'ADMIN' %}
+        <a href="{% url 'subscription' %}" class="nav-link {% block nav_billing %}{% endblock %}">
+            <i class="bi bi-credit-card-2-front-fill"></i>
+            <span>Billing / Upgrade</span>
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
 
     {% endif %}
 
     <!-- Sidebar Footer -->
     <div class="sidebar-footer">
         {% if user.is_authenticated %}
-        <div class="d-flex align-items-center gap-2 mb-2">
-            <div style="width:32px;height:32px;border-radius:50%;background:var(--brand-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;">
+        <div class="user-profile-card">
+            <div class="user-avatar-sidebar">
                 {{ user.username|make_list|first|upper }}
             </div>
-            <div>
-                <div style="color:#fff;font-size:0.85rem;font-weight:600;">{{ user.get_full_name|default:user.username }}</div>
-                <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);">{{ user.get_role_display }}</div>
+            <div class="user-details">
+                <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+                <div class="user-role">{{ user.get_role_display }}</div>
             </div>
         </div>
         <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-light w-100 mt-1">
-                <i class="bi bi-box-arrow-left me-1"></i> Logout
+            <button type="submit" class="btn-logout">
+                <i class="bi bi-box-arrow-left"></i>
+                <span>Logout</span>
             </button>
         </form>
         {% endif %}
@@ -126,62 +147,88 @@
 <div class="main-content">
     <!-- Top Bar -->
     <div class="topbar no-print">
-        <div class="d-flex align-items-center gap-3">
-            <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <div class="topbar-left">
+            <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
                 <i class="bi bi-list"></i>
             </button>
-            <h5 class="page-title">{% block page_title %}Dashboard{% endblock %}</h5>
+            <div class="page-header">
+                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <p class="page-subtitle d-none d-md-block">{% block page_subtitle %}{% endblock %}</p>
+            </div>
         </div>
-        <div class="user-info">
-            <span class="text-muted" style="font-size:0.85rem;">
-                <i class="bi bi-clock me-1"></i>
+        <div class="topbar-right">
+            <div class="topbar-item">
+                <i class="bi bi-calendar3 text-primary"></i>
+                <span class="d-none d-md-inline" id="current-date"></span>
+            </div>
+            <div class="topbar-divider d-none d-md-block"></div>
+            <div class="topbar-item">
+                <i class="bi bi-clock text-success"></i>
                 <span id="live-time"></span>
-            </span>
+            </div>
         </div>
     </div>
 
     <!-- Content Area -->
     <div class="content-area">
+        <!-- Trial Banner -->
         {% if user.is_authenticated and org_plan == 'FREE_TRIAL' and trial_valid %}
-        <div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center no-print">
-            <div class="small">
-                <strong>Free Trial</strong>
-                {% if trial_days_left is not None %}
-                    — {{ trial_days_left }} day{{ trial_days_left|pluralize }} left (ends {{ trial_end }})
-                {% else %}
-                    — Active
-                {% endif %}
+        <div class="trial-banner no-print">
+            <div class="trial-banner-content">
+                <div class="trial-icon">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="trial-text">
+                    <strong>Free Trial Active</strong>
+                    {% if trial_days_left is not None %}
+                    <span class="trial-days">{{ trial_days_left }} day{{ trial_days_left|pluralize }} remaining</span>
+                    {% endif %}
+                </div>
             </div>
             {% if user.role == 'ADMIN' %}
-            <a href="{% url 'subscription' %}" class="btn btn-sm btn-dark fw-bold">
-                Upgrade
+            <a href="{% url 'subscription' %}" class="btn btn-warning btn-sm">
+                <i class="bi bi-rocket-takeoff me-1"></i> Upgrade Now
             </a>
             {% endif %}
         </div>
         {% endif %}
+
         <!-- Messages -->
         {% if messages %}
-        <div class="mb-3">
+        <div class="messages-container mb-4">
             {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                {% if message.tags == 'success' %}
-                <i class="bi bi-check-circle-fill me-2"></i>
-                {% elif message.tags == 'error' or message.tags == 'danger' %}
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                {% elif message.tags == 'warning' %}
-                <i class="bi bi-exclamation-circle-fill me-2"></i>
-                {% else %}
-                <i class="bi bi-info-circle-fill me-2"></i>
-                {% endif %}
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show animate-fadeInUp" role="alert">
+                <div class="alert-icon">
+                    {% if message.tags == 'success' %}
+                    <i class="bi bi-check-circle-fill"></i>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    {% elif message.tags == 'warning' %}
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    {% else %}
+                    <i class="bi bi-info-circle-fill"></i>
+                    {% endif %}
+                </div>
+                <div class="alert-content">{{ message }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
             {% endfor %}
         </div>
         {% endif %}
 
-        {% block content %}{% endblock %}
+        <!-- Main Content Block -->
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="main-footer no-print">
+        <div class="footer-content">
+            <span>&copy; {% now "Y" %} Attendance Pro. All rights reserved.</span>
+            <span class="footer-version">v2.0</span>
+        </div>
+    </footer>
 </div>
 
 <!-- Bootstrap JS -->
@@ -190,19 +237,57 @@
 <script>
 // Sidebar toggle (mobile)
 function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('show');
-    document.getElementById('sidebarOverlay').classList.toggle('show');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('show');
+    overlay.classList.toggle('show');
+    document.body.classList.toggle('sidebar-open');
 }
+
+// Close sidebar on overlay click
+document.getElementById('sidebarOverlay').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.remove('show');
+    this.classList.remove('show');
+    document.body.classList.remove('sidebar-open');
+});
 
 // Live time display
 function updateTime() {
     const now = new Date();
-    const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-    const el = document.getElementById('live-time');
-    if (el) el.textContent = now.toLocaleTimeString('en-US', options);
+    const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+    const dateOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+    
+    const timeEl = document.getElementById('live-time');
+    const dateEl = document.getElementById('current-date');
+    
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-US', timeOptions);
+    if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', dateOptions);
 }
 updateTime();
 setInterval(updateTime, 1000);
+
+// Add active state animation
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('clicking'));
+        this.classList.add('clicking');
+    });
+});
+
+// Scroll behavior for topbar
+let lastScroll = 0;
+window.addEventListener('scroll', function() {
+    const topbar = document.querySelector('.topbar');
+    const currentScroll = window.pageYOffset;
+    
+    if (currentScroll > 50) {
+        topbar.classList.add('scrolled');
+    } else {
+        topbar.classList.remove('scrolled');
+    }
+    
+    lastScroll = currentScroll;
+});
 </script>
 
 {% block extra_js %}{% endblock %}
