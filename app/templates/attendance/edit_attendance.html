@@ -37,7 +37,7 @@
                         </td>
 
                         <td>{{ student.roll_number }}</td>
-                        <td>{{ student.course_name }}</td>
+                        <td>{{ student.department }}</td>
 
                         <!-- Status -->
                         <td>
@@ -87,12 +87,12 @@
         </div>
     </div>
 
-    <div class="text-center mt-4">
+    {% comment %} <div class="text-center mt-4">
         <a href="{% url 'dashboard' %}"
            class="btn btn-secondary">
             Back to Dashboard
         </a>
-    </div>
+    </div> {% endcomment %}
 
 </div>
 

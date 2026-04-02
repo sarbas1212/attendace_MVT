@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendancePro – Cloud Attendance Platform</title>
+    <meta name="description"
+        content="AttendancePro is a cloud-based attendance management platform for schools and institutions. Manage attendance, departments, teachers, students, reports, and subscriptions from one secure system.">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --accent: #0ea5e9;
+            --accent-light: #38bdf8;
+            --dark: #0f172a;
+            --dark-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .navbar-custom {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.2rem 0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .navbar-custom.scrolled {
+            background: rgba(15, 23, 42, 0.95);
+            padding: 0.8rem 0;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-brand-custom {
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: #fff !important;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            text-decoration: none;
+            transition: transform 0.3s ease;
+        }
+
+        .navbar-brand-custom:hover {
+            transform: translateX(3px);
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-signin-nav {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            border: none;
+            padding: 0.65rem 1.8rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-signin-nav:hover {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            padding-top: 100px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.5rem 1.4rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-light);
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.4); }
+        }
+
+        .hero-title {
+            font-size: clamp(2.8rem, 5.5vw, 4.5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -2px;
+            margin-bottom: 1.8rem;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-title .gradient-text {
+            background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            max-width: 600px;
+            margin-bottom: 2.8rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-hero-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-hero-primary:hover {
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 45px rgba(99, 102, 241, 0.45);
+        }
+
+        .btn-hero-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+            padding: 1rem 2.5rem;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .btn-hero-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .dashboard-preview {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dashboard-preview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .preview-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .preview-dot:hover {
+            transform: scale(1.2);
+        }
+
+        .preview-dot.red { background: #ef4444; }
+        .preview-dot.yellow { background: #f59e0b; }
+        .preview-dot.green { background: #22c55e; }
+
+        .preview-stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-stat {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.3rem;
+            transition: all 0.3s ease;
+        }
+
+        .preview-stat:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .preview-stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .preview-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.3rem;
+        }
+
+        .preview-bar-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .preview-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .preview-bar-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            width: 35px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .preview-bar-track {
+            flex: 1;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .preview-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .preview-bar-fill.purple { background: linear-gradient(90deg, var(--primary), var(--primary-light)); }
+        .preview-bar-fill.cyan { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+        .preview-bar-fill.green { background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+        .features-section, .stats-section, .how-section, .cta-section {
+            position: relative;
+            z-index: 1;
+        }
+
+        .features-section, .how-section {
+            padding: 7rem 0;
+        }
+
+        .stats-section {
+            padding: 6rem 0;
+        }
+
+        .cta-section {
+            padding: 7rem 0 9rem;
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            margin-bottom: 1.2rem;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.7;
+            max-width: 600px;
+        }
+
+        .feature-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            height: 100%;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        .feature-icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            margin-bottom: 1.6rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(14, 165, 233, 0.1));
+            color: var(--accent-light);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon-wrapper {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .stats-wrapper {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(30, 41, 59, 0.8));
+            border-radius: 28px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 4rem 2.5rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: clamp(2.5rem, 4.5vw, 3.5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff, var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .step-card {
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .step-card h4 {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .step-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .cta-box {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            padding: 5rem 3rem;
+            backdrop-filter: blur(30px);
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+        }
+
+        .cta-box h2 {
+            font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+            font-weight: 800;
+            margin-bottom: 1.2rem;
+        }
+
+        .cta-box p {
+            color: var(--text-secondary);
+            font-size: 1.15rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .footer {
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(20px);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .footer-copy {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-light);
+        }
+
+        .fade-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 992px) {
+            .hero-visual {
+                margin-top: 4rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .preview-stat-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-wrapper {
+                padding: 3rem 2rem;
+            }
+
+            .cta-box {
+                padding: 3.5rem 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-glow">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <nav class="navbar-custom">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="navbar-brand-custom" href="{% url 'index' %}">
+                <span class="brand-icon"><i class="bi bi-mortarboard-fill"></i></span>
+                AttendancePro
+            </a>
+            <div class="d-flex gap-3 align-items-center">
+                <a href="{% url 'login' %}" class="text-light text-decoration-none small fw-semibold">Sign In</a>
+                <a href="{% url 'admin_register' %}" class="btn-signin-nav">Start Free Trial</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <div class="fade-up">
+                        <div class="hero-badge">
+                            <span class="dot"></span>
+                            Cloud-Based Attendance SaaS Platform
+                        </div>
+                    </div>
+                    <h1 class="hero-title fade-up" style="transition-delay: 0.1s;">
+                        Smarter Way to<br>
+                        <span class="gradient-text">Manage Attendance</span>
+                    </h1>
+                    <p class="hero-description fade-up" style="transition-delay: 0.2s;">
+                        A complete cloud-based attendance platform for schools and institutions. Manage students, teachers,
+                        departments, reports, calendars, and subscriptions from one secure dashboard.
+                    </p>
+                    <div class="hero-buttons fade-up" style="transition-delay: 0.3s;">
+                        <a href="{% url 'admin_register' %}" class="btn-hero-primary">
+                            Start Free Trial <i class="bi bi-arrow-right"></i>
+                        </a>
+                        <a href="#pricing" class="btn-hero-secondary">
+                            <i class="bi bi-credit-card"></i> View Pricing
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6 hero-visual fade-up" style="transition-delay: 0.4s;">
+                    <div class="dashboard-preview">
+                        <div class="preview-header">
+                            <span class="preview-dot red"></span>
+                            <span class="preview-dot yellow"></span>
+                            <span class="preview-dot green"></span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary);">Platform Overview</span>
+                        </div>
+                        <div class="preview-stat-grid">
+                            <div class="preview-stat">
+                                <div class="preview-stat-value">1,247</div>
+                                <div class="preview-stat-label">Students</div>
+                            </div>
+                            <div class="preview-stat">
+                                <div class="preview-stat-value">94.8%</div>
+                                <div class="preview-stat-label">Attendance</div>
+                            </div>
+                            <div class="preview-stat">
+                                <div class="preview-stat-value">12</div>
+                                <div class="preview-stat-label">Departments</div>
+                            </div>
+                            <div class="preview-stat">
+                                <div class="preview-stat-value">24/7</div>
+                                <div class="preview-stat-label">Cloud Access</div>
+                            </div>
+                        </div>
+                        <div class="preview-bar-group">
+                            <div class="preview-bar-row">
+                                <span class="preview-bar-label">CSE</span>
+                                <div class="preview-bar-track">
+                                    <div class="preview-bar-fill purple" style="width: 0%;" data-width="92%"></div>
+                                </div>
+                            </div>
+                            <div class="preview-bar-row">
+                                <span class="preview-bar-label">ECE</span>
+                                <div class="preview-bar-track">
+                                    <div class="preview-bar-fill cyan" style="width: 0%;" data-width="88%"></div>
+                                </div>
+                            </div>
+                            <div class="preview-bar-row">
+                                <span class="preview-bar-label">ME</span>
+                                <div class="preview-bar-track">
+                                    <div class="preview-bar-fill green" style="width: 0%;" data-width="96%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="text-center mb-5 fade-up">
+                <div class="section-label"><i class="bi bi-stars"></i> Core Features</div>
+                <h2 class="section-title">Everything You Need to<br>Run Attendance Smoothly</h2>
+                <p class="section-subtitle mx-auto">
+                    Designed for schools and institutions that need simple daily workflows with powerful reporting.
+                </p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 fade-up" style="transition-delay: 0.1s;">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <i class="bi bi-file-earmark-spreadsheet"></i>
+                        </div>
+                        <h3>Student Import</h3>
+                        <p>Import students in bulk from Excel or CSV and organize them by department without manual entry.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 fade-up" style="transition-delay: 0.2s;">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <i class="bi bi-check2-circle"></i>
+                        </div>
+                        <h3>Daily Attendance</h3>
+                        <p>Take attendance by date and department with a simple interface built for real institutional workflows.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 fade-up" style="transition-delay: 0.3s;">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+                        <h3>Reports & Insights</h3>
+                        <p>Track absentees, review attendance trends, and view calendar-based academic planning in one system.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="container">
+            <div class="stats-wrapper fade-up">
+                <div class="row g-4">
+                    <div class="col-6 col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">99.9%</div>
+                            <div class="stat-description">Platform Uptime</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">&lt; 2s</div>
+                            <div class="stat-description">Fast Reporting</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">100%</div>
+                            <div class="stat-description">Role-Based Access</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">24/7</div>
+                            <div class="stat-description">Cloud Availability</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-section" id="how-it-works">
+        <div class="container">
+            <div class="text-center mb-5 fade-up">
+                <div class="section-label"><i class="bi bi-lightbulb"></i> How It Works</div>
+                <h2 class="section-title">Get Started in Minutes</h2>
+                <p class="section-subtitle mx-auto">Set up your institution and start using AttendancePro quickly.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 fade-up" style="transition-delay: 0.1s;">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h4>Create Organization</h4>
+                        <p>Register your institution and configure your admin account for secure access.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 fade-up" style="transition-delay: 0.2s;">
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h4>Activate Subscription</h4>
+                        <p>Choose a monthly or yearly plan after login and activate your school account with secure billing.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 fade-up" style="transition-delay: 0.3s;">
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h4>Manage Attendance</h4>
+                        <p>Add teachers, import students, record attendance, and monitor reports from one dashboard.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section" id="pricing">
+        <div class="container">
+            <div class="text-center mb-5 fade-up">
+                <div class="section-label"><i class="bi bi-credit-card"></i> Pricing</div>
+                <h2 class="section-title">Simple & Transparent Plans</h2>
+                <p class="section-subtitle mx-auto">Register your organization first, then choose the right plan after login.</p>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4 fade-up">
+                    <div class="feature-card text-center">
+                        <h4 class="fw-bold mb-3">Monthly Plan</h4>
+                        <h2 class="fw-bold mb-2">₹999</h2>
+                        <p class="text-white small mb-4">Billed monthly</p>
+                        <ul class="list-unstyled small text-start mb-4">
+                            <li class="mb-2">✔ Unlimited Students</li>
+                            <li class="mb-2">✔ Attendance Reports</li>
+                            <li class="mb-2">✔ Academic Calendar</li>
+                            <li class="mb-2">✔ Admin Dashboard</li>
+                        </ul>
+                        <a href="{% url 'admin_register' %}" class="btn-hero-primary w-100 justify-content-center">
+                            Create Account
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-4 fade-up">
+                    <div class="feature-card text-center" style="border-color: rgba(79, 70, 229, 0.45);">
+                        <h4 class="fw-bold mb-3">Yearly Plan</h4>
+                        <h2 class="fw-bold mb-2">₹9999</h2>
+                        <p class="text-white small mb-4">Best value for institutions</p>
+                        <ul class="list-unstyled small text-start mb-4">
+                            <li class="mb-2">✔ Everything in Monthly</li>
+                            <li class="mb-2">✔ Priority Access</li>
+                            <li class="mb-2">✔ Advanced Reporting</li>
+                            <li class="mb-2">✔ Lower yearly cost</li>
+                        </ul>
+                        <a href="{% url 'admin_register' %}" class="btn-hero-primary w-100 justify-content-center">
+                            Create Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-box fade-up">
+                <h2>Start Managing Your Institution Today</h2>
+                <p>Create your organization account and get started in minutes.</p>
+                <a href="{% url 'admin_register' %}" class="btn-hero-primary">
+                    Start Free Trial <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="brand-icon"><i class="bi bi-mortarboard-fill"></i></span>
+                    AttendancePro
+                </div>
+                <div class="footer-copy">
+                    &copy; 2026 AttendancePro. Cloud attendance for modern institutions.
+                </div>
+                <div class="footer-links">
+                    <a href="#features">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="{% url 'login' %}">Sign In</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('visible');
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+            document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+            window.addEventListener('scroll', () => {
+                const nav = document.querySelector('.navbar-custom');
+                nav.classList.toggle('scrolled', window.scrollY > 50);
+            });
+
+            setTimeout(() => {
+                document.querySelectorAll('.preview-bar-fill').forEach(bar => {
+                    bar.style.width = bar.dataset.width;
+                });
+            }, 800);
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>     

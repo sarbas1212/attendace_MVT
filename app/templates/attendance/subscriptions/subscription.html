@@ -1,0 +1,151 @@
+{% extends 'attendance/base.html' %}
+{% block nav_billing %}active{% endblock %}
+{% block page_title %}Billing{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">Billing & Plans</h4>
+            <div class="text-muted small">
+                Organization: <b>{{ organization.name }}</b> • Current Plan: <b>{{ organization.get_plan_display }}</b>
+            </div>
+            {% if organization.plan == 'FREE_TRIAL' and organization.trial_end %}
+            <div class="text-muted small mt-1">
+                Trial ends on <b>{{ organization.trial_end }}</b>
+            </div>
+            {% endif %}
+            {% if organization.subscription_end %}
+            <div class="text-muted small mt-1">
+                Subscription valid until <b>{{ organization.subscription_end }}</b>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if organization.plan == 'FREE_TRIAL' and organization.trial_end %}
+    <div class="alert alert-warning border-0 shadow-sm">
+        <div class="fw-bold">Free Trial Active</div>
+        <div class="small">Upgrade to avoid interruption after {{ organization.trial_end }}.</div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Monthly -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Monthly</h5>
+                        <span class="badge bg-light text-dark border">Popular</span>
+                    </div>
+                    <div class="display-6 fw-bold mt-3">₹999</div>
+                    <div class="text-muted small mb-4">Billed every month</div>
+
+                    <ul class="small text-muted ps-3">
+                        <li>Unlimited students & teachers</li>
+                        <li>Attendance & reports</li>
+                        <li>Calendar and holiday logic</li>
+                        <li>Email support</li>
+                    </ul>
+
+                    <button class="btn btn-primary w-100 fw-bold mt-3" onclick="subscribe('MONTHLY')">
+                        Upgrade to Monthly
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yearly -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 14px; border: 2px solid #4f46e5;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Yearly</h5>
+                        <span class="badge bg-primary">Best Value</span>
+                    </div>
+                    <div class="display-6 fw-bold mt-3">₹9999</div>
+                    <div class="text-muted small mb-4">Billed annually</div>
+
+                    <ul class="small text-muted ps-3">
+                        <li>Everything in Monthly</li>
+                        <li>Lower yearly cost</li>
+                        <li>Priority support</li>
+                        <li>Advanced reports</li>
+                    </ul>
+
+                    <button class="btn btn-dark w-100 fw-bold mt-3" onclick="subscribe('YEARLY')">
+                        Upgrade to Yearly
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help card -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold">Need Help?</h6>
+                    <p class="text-muted small mb-3">
+                        Payments are processed securely via Razorpay. If you face issues, contact support.
+                    </p>
+                    <div class="small text-muted">
+                        <div class="mb-2"><i class="bi bi-shield-check me-2"></i>Secure Checkout</div>
+                        <div class="mb-2"><i class="bi bi-receipt me-2"></i>Instant Activation</div>
+                        <div><i class="bi bi-clock-history me-2"></i>No downtime during upgrade</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function subscribe(plan) {
+    fetch("{% url 'create_order' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "plan=" + encodeURIComponent(plan)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+
+        var options = {
+            "key": data.key,
+            "amount": data.amount,
+            "currency": "INR",
+            "name": "AttendancePro",
+            "description": plan + " Subscription",
+            "order_id": data.order_id,
+            "handler": function (response){
+                fetch("{% url 'payment_success' %}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}",
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: "plan=" + encodeURIComponent(plan) +
+                          "&payment_id=" + encodeURIComponent(response.razorpay_payment_id)
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === "success") {
+                        window.location.href = "{% url 'dashboard' %}?subscribed=1";
+                    } else {
+                        alert("Payment done but activation failed.");
+                    }
+                });
+            },
+            "theme": { "color": "#4f46e5" }
+        };
+
+        new Razorpay(options).open();
+    });
+}
+</script>
+{% endblock %}

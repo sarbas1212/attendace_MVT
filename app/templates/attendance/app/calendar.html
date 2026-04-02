@@ -1,0 +1,144 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Calendar — Attendance Pro{% endblock %}
+{% block nav_calendar %}active{% endblock %}
+
+{% block content %}
+<!-- FullCalendar CDNs -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<div class="container-fluid px-4 py-3">
+    <div class="row g-4">
+        <!-- 1. LEFT SIDE: THE CALENDAR (Main View) -->
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <h4 class="fw-bold text-dark mb-0">Institution Calendar</h4>
+                    <span class="text-muted small">Academic Year {{ today.year }}</span>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 16px;">
+                <div class="card-body p-0">
+                    <div id="calendar" class="p-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. RIGHT SIDE: USEFUL HOLIDAY SUMMARY (Zoho style) -->
+        <div class="col-lg-3">
+            <div class="mb-4" style="margin-top: 5px;">
+                <h6 class="fw-bold text-dark mb-3">Upcoming Holidays</h6>
+                <div class="list-group list-group-flush shadow-sm rounded-4 border overflow-hidden">
+                    {% for event in events|slice:":8" %}
+                    <div class="list-group-item border-0 border-bottom p-3 bg-white">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-danger bg-opacity-10 text-danger rounded-3 px-2 py-1 me-3 text-center" style="min-width: 50px;">
+                                <div class="fw-bold small">{{ event.start|slice:"8:10" }}</div>
+                                <div class="small fw-bold" style="font-size: 0.6rem;">{{ event.start|slice:"5:7" }}</div>
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="fw-bold text-dark small text-truncate">{{ event.title }}</div>
+                                <div class="text-muted small" style="font-size: 0.7rem;">Public Holiday</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-center py-4 text-muted small">No upcoming holidays.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Legend Card -->
+            <div class="card border-0 bg-light p-3 rounded-4">
+                <div class="small fw-bold text-muted text-uppercase mb-2" style="letter-spacing: 0.5px;">Legend</div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-danger rounded-circle p-1" style="width: 8px; height: 8px;"></span>
+                    <span class="small text-dark fw-medium">Red: Holiday</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-dark rounded-circle p-1" style="width: 8px; height: 8px;"></span>
+                    <span class="small text-dark fw-medium">Black: Working Day</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 1. DATE COLORS: THE FIX */
+    .fc .fc-daygrid-day-number { 
+        color: #000000 !important; /* Working Day: Black */
+        font-weight: 700 !important; 
+        font-size: 0.9rem !important;
+        text-decoration: none !important;
+    }
+
+    /* Target Sundays to be Red by default (Non-working day) */
+    .fc-day-sun .fc-daygrid-day-number { 
+        color: #dc3545 !important; 
+    }
+
+    /* Target specific Public Holidays to be Red */
+    .is-holiday .fc-daygrid-day-number { 
+        color: #dc3545 !important; /* Holiday: Red */
+    }
+
+    /* 2. CALENDAR OVERRIDES */
+    .fc { font-family: 'Inter', sans-serif; --fc-border-color: #f3f3f3; }
+    .fc .fc-toolbar-title { font-size: 1.2rem !important; font-weight: 800; color: #1e293b; }
+    .fc .fc-button { 
+        background: #fff !important; border: 1px solid #e2e8f0 !important; 
+        color: #475569 !important; font-weight: 600 !important; text-transform: capitalize !important;
+        box-shadow: none !important;
+    }
+    .fc .fc-button:hover { background: #f8fafc !important; }
+    .fc .fc-button-active { background: #0d6efd !important; color: #fff !important; border-color: #0d6efd !important; }
+
+    /* Holiday Event Bar Styling (Black text on red bar) */
+    .fc-v-event, .fc-h-event { 
+        background-color: #fee2e2 !important; border: none !important;
+        border-left: 4px solid #ef4444 !important; border-radius: 4px !important;
+        padding: 2px 4px !important; margin: 1px 0 !important;
+    }
+    .fc-event-title { color: #000000 !important; font-size: 0.75rem !important; font-weight: 700 !important; }
+
+    /* Weekend Shading */
+    .fc-day-sun, .fc-day-sat { background-color: #fafafa; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var holidayData = {{ events|safe }};
+        // Extract just the dates for fast lookup
+        const holidayDates = new Set(holidayData.map(e => e.start));
+
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            firstDay: 1, 
+            height: 'auto',
+            events: holidayData,
+            
+            // Logic to apply the Red Date class
+            dayCellClassNames: function(arg) {
+                // Formats date to YYYY-MM-DD correctly
+                let dateStr = arg.date.toISOString().split('T')[0];
+                if (holidayDates.has(dateStr)) {
+                    return ['is-holiday'];
+                }
+            },
+
+            dayMaxEvents: true,
+            displayEventTime: false,
+        });
+        calendar.render();
+    });
+</script>
+{% endblock %}

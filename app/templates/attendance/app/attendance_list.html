@@ -1,0 +1,546 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Attendance — {{ selected_date|date:"d M Y" }}{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+{% block page_subtitle %}{{ selected_date|date:"l, d F Y" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Clean Minimal Styles */
+    .date-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .date-nav .form-control,
+    .date-nav .form-select {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.875rem;
+        background: #fff;
+    }
+
+    .date-nav .form-control:focus,
+    .date-nav .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Stats Inline */
+    .stats-inline {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 12px 0;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 16px;
+        font-size: 0.875rem;
+    }
+
+    .stats-inline .stat {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .stats-inline .stat-value {
+        font-weight: 700;
+    }
+
+    .stats-inline .stat-value.success { color: #059669; }
+    .stats-inline .stat-value.danger { color: #dc2626; }
+    .stats-inline .stat-value.primary { color: #667eea; }
+
+    /* Alert Banner */
+    .alert-banner {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert-banner.success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    /* Clean Table */
+    .attendance-table {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .attendance-table table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .attendance-table th {
+        background: #f9fafb;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        font-weight: 600;
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .attendance-table th:last-child {
+        text-align: right;
+    }
+
+    .attendance-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .attendance-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .attendance-table tr:hover {
+        background: #fafafa;
+    }
+
+    .attendance-table tr.row-absent {
+        background: #fef2f2;
+    }
+
+    .attendance-table tr.row-absent:hover {
+        background: #fee2e2;
+    }
+
+    /* Student Cell */
+    .student-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .student-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+
+    .student-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .student-name {
+        font-weight: 500;
+        color: #111827;
+        font-size: 0.9rem;
+    }
+
+    .student-roll {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+
+    .dept-label {
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+
+    /* Toggle Switch */
+    .status-toggle {
+        display: inline-flex;
+        background: #f3f4f6;
+        border-radius: 6px;
+        padding: 3px;
+    }
+
+    .status-toggle label {
+        padding: 6px 14px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        color: #6b7280;
+    }
+
+    .status-toggle input { display: none; }
+
+    .status-toggle input:checked + label.present {
+        background: #10b981;
+        color: #fff;
+    }
+
+    .status-toggle input:checked + label.absent {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    .status-toggle label:hover {
+        background: #e5e7eb;
+    }
+
+    .status-toggle input:checked + label:hover {
+        opacity: 0.9;
+    }
+
+    /* Footer */
+    .page-footer {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: -1px;
+    }
+
+    .btn-save {
+        background: #667eea;
+        color: #fff;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    .btn-save:hover {
+        background: #5a67d8;
+        color: #fff;
+    }
+
+    .btn-save.changed {
+        background: #f59e0b;
+    }
+
+    .btn-save.changed:hover {
+        background: #d97706;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .quick-actions button {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .quick-actions button:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+
+    /* Search */
+    .search-box {
+        position: relative;
+        max-width: 250px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 8px 12px 8px 36px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 0.875rem;
+    }
+
+    /* Empty */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .date-nav { flex-wrap: wrap; }
+        .stats-inline { flex-wrap: wrap; gap: 16px; }
+        .page-footer { flex-direction: column; gap: 12px; }
+        .quick-actions { justify-content: center; }
+    }
+
+    @media print {
+        .no-print { display: none !important; }
+        .page-footer { display: none; }
+        .attendance-table { border: 1px solid #000; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-2">
+
+    <!-- Date & Department Filter -->
+    <form method="get" class="date-nav no-print">
+        <input type="date" 
+               name="date" 
+               value="{{ selected_date|date:'Y-m-d' }}" 
+               max="{{ today|date:'Y-m-d' }}" 
+               class="form-control"
+               onchange="this.form.submit()"
+               style="width: 160px;">
+        
+        {% if user.role == 'ADMIN' %}
+        <select name="department" class="form-select" onchange="this.form.submit()" style="width: 180px;">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                {{ dept.name }}
+            </option>
+            {% endfor %}
+        </select>
+        {% endif %}
+
+        <div class="search-box ms-auto">
+            <i class="bi bi-search"></i>
+            <input type="text" id="searchInput" placeholder="Search students...">
+        </div>
+    </form>
+
+    <!-- Holiday/Status Banner -->
+    {% if not is_workday %}
+    <div class="alert-banner">
+        <i class="bi bi-calendar-x"></i>
+        <span><strong>{{ holiday_reason }}</strong> — Attendance marking is disabled for this day.</span>
+    </div>
+    {% elif session_exists %}
+    <div class="alert-banner success">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Attendance has been saved for this date.</span>
+    </div>
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="stats-inline">
+        <div class="stat">
+            <span class="text-muted">Total:</span>
+            <span class="stat-value">{{ stats.total }}</span>
+        </div>
+        <div class="stat">
+            <span class="text-muted">Present:</span>
+            <span class="stat-value success">{{ stats.present }}</span>
+        </div>
+        <div class="stat">
+            <span class="text-muted">Absent:</span>
+            <span class="stat-value danger">{{ stats.absent }}</span>
+        </div>
+        <div class="stat">
+            <span class="text-muted">Rate:</span>
+            <span class="stat-value primary">{{ stats.percentage }}%</span>
+        </div>
+
+        {% if is_workday %}
+        <div class="quick-actions ms-auto no-print">
+            <button type="button" onclick="markAll('present')">
+                <i class="bi bi-check-all me-1"></i>All Present
+            </button>
+            <button type="button" onclick="markAll('absent')">
+                <i class="bi bi-x-lg me-1"></i>All Absent
+            </button>
+            <button type="button" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Print
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="attendance-table">
+        <form method="post" id="attendanceForm">
+            {% csrf_token %}
+            <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+
+            {% if students %}
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Student</th>
+                        <th>Department</th>
+                        <th style="width: 160px; text-align: right;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    {% for student in students %}
+                    <tr id="row-{{ student.id }}" 
+                        class="{% if student.id in absent_ids %}row-absent{% endif %}"
+                        data-name="{{ student.student_name|lower }}"
+                        data-roll="{{ student.roll_number|lower }}">
+                        
+                        <td class="text-muted">{{ forloop.counter }}</td>
+                        
+                        <td>
+                            <div class="student-cell">
+                                <div class="student-avatar">
+                                    {% if student.profile_photo and student.profile_photo.url %}
+                                    <img src="{{ student.profile_photo.url }}" alt="">
+                                    {% else %}
+                                    {{ student.student_name|make_list|first|upper }}
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="student-name">{{ student.student_name }}</div>
+                                    <div class="student-roll">{{ student.roll_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td>
+                            <span class="dept-label">{{ student.department.code|default:student.department.name }}</span>
+                        </td>
+                        
+                        <td style="text-align: right;">
+                            <div class="status-toggle">
+                                <input type="radio" 
+                                       name="status_{{ student.id }}" 
+                                       id="p_{{ student.id }}" 
+                                       value="present"
+                                       {% if student.id not in absent_ids %}checked{% endif %}
+                                       {% if not is_workday %}disabled{% endif %}
+                                       onchange="toggleStatus({{ student.id }}, false)">
+                                <label for="p_{{ student.id }}" class="present">Present</label>
+
+                                <input type="radio" 
+                                       name="status_{{ student.id }}" 
+                                       id="a_{{ student.id }}" 
+                                       value="absent"
+                                       {% if student.id in absent_ids %}checked{% endif %}
+                                       {% if not is_workday %}disabled{% endif %}
+                                       onchange="toggleStatus({{ student.id }}, true)">
+                                <label for="a_{{ student.id }}" class="absent">Absent</label>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if is_workday %}
+            <div class="page-footer no-print">
+                <span class="text-muted small" id="changeInfo">No changes</span>
+                <button type="submit" class="btn-save" id="saveBtn">
+                    Save Attendance
+                </button>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-people"></i>
+                <h5>No Students</h5>
+                <p class="text-muted mb-0">No students found for the selected filters.</p>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let changeCount = 0;
+
+    function toggleStatus(id, isAbsent) {
+        const row = document.getElementById('row-' + id);
+        row.classList.toggle('row-absent', isAbsent);
+        updateChangeCount();
+    }
+
+    function updateChangeCount() {
+        changeCount++;
+        const info = document.getElementById('changeInfo');
+        const btn = document.getElementById('saveBtn');
+        
+        info.textContent = changeCount + ' change' + (changeCount > 1 ? 's' : '');
+        btn.classList.add('changed');
+        btn.textContent = 'Save Changes';
+    }
+
+    function markAll(status) {
+        const isAbsent = status === 'absent';
+        if (isAbsent && !confirm('Mark all students as absent?')) return;
+
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const id = row.id.replace('row-', '');
+            document.getElementById((isAbsent ? 'a_' : 'p_') + id).checked = true;
+            row.classList.toggle('row-absent', isAbsent);
+        });
+        updateChangeCount();
+    }
+
+    // Search
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const match = row.dataset.name.includes(term) || row.dataset.roll.includes(term);
+            row.style.display = match ? '' : 'none';
+        });
+    });
+
+    // Keyboard: Ctrl+S to save
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('attendanceForm').submit();
+        }
+    });
+</script>
+{% endblock %}

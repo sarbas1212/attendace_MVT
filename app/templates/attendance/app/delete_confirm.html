@@ -1,0 +1,38 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Confirm Delete — Attendance Pro{% endblock %}
+{% block page_title %}Confirm Deletion{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-danger text-white py-3">
+                <h6 class="fw-semibold mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Confirm Deletion
+                </h6>
+            </div>
+            <div class="card-body text-center py-4">
+                <i class="bi bi-trash3-fill fs-1 text-danger mb-3"></i>
+                <p class="fs-5 fw-medium">
+                    Are you sure you want to delete
+                    <strong>{{ object }}</strong>?
+                </p>
+                <p class="text-muted">
+                    This {{ object_type|lower }} will be deactivated and hidden from lists.
+                </p>
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i> Yes, Delete
+                        </button>
+                    </form>
+                    <a href="{{ cancel_url }}" class="btn btn-secondary">No, Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+<!-- Student Detail Modal Content -->
+<div class="text-center mb-4">
+    {% if student.profile_photo and student.profile_photo.url %}
+    <img src="{{ student.profile_photo.url }}" alt="{{ student.student_name }}" 
+         class="rounded-circle mb-3 border shadow-sm" 
+         style="width: 100px; height: 100px; object-fit: cover;">
+    {% else %}
+    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3 shadow-sm"
+         style="width: 100px; height: 100px; font-size: 2.5rem; font-weight: 700;">
+        {{ student.student_name|make_list|first|upper }}
+    </div>
+    {% endif %}
+    <h5 class="mb-1 fw-bold">{{ student.student_name }}</h5>
+    <span class="badge bg-primary px-3 py-2">{{ student.roll_number }}</span>
+</div>
+
+<div class="border-top pt-3">
+    <div class="row g-3">
+        <div class="col-6">
+            <div class="text-muted small text-uppercase" style="font-size: 0.7rem;">Department</div>
+            <div class="fw-medium">{{ student.department.name }}</div>
+        </div>
+        <div class="col-6">
+            <div class="text-muted small text-uppercase" style="font-size: 0.7rem;">Date of Birth</div>
+            <div class="fw-medium">{{ student.date_of_birth|date:"d M Y"|default:"—" }}</div>
+        </div>
+        <div class="col-6">
+            <div class="text-muted small text-uppercase" style="font-size: 0.7rem;">Email</div>
+            <div class="fw-medium text-break">{{ student.email|default:"—" }}</div>
+        </div>
+        <div class="col-6">
+            <div class="text-muted small text-uppercase" style="font-size: 0.7rem;">Phone</div>
+            <div class="fw-medium">{{ student.phone|default:"—" }}</div>
+        </div>
+        <div class="col-6">
+            <div class="text-muted small text-uppercase" style="font-size: 0.7rem;">Parent Contact</div>
+            <div class="fw-medium">{{ student.parent_contact|default:"—" }}</div>
+        </div>
+        <div class="col-6">
+            <div class="text-muted small text-uppercase" style="font-size: 0.7rem;">Total Absences</div>
+            <div class="fw-medium">
+                <span class="badge bg-{{ total_absences|yesno:'danger,success' }}-subtle text-{{ total_absences|yesno:'danger,success' }}">
+                    {{ total_absences }} days
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="border-top pt-3 mt-3">
+    <div class="d-flex gap-2 flex-wrap justify-content-center">
+        <a href="{% url 'edit_student' pk=student.pk %}" 
+           class="btn btn-sm btn-primary"
+           onclick="closeModalAndNavigate(this.href); return false;">
+            <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+        <a href="{% url 'upload_student_photo' pk=student.pk %}" 
+           class="btn btn-sm btn-outline-secondary"
+           onclick="closeModalAndNavigate(this.href); return false;">
+            <i class="bi bi-camera me-1"></i> Photo
+        </a>
+        <a href="{% url 'change_student_password' pk=student.pk %}" 
+           class="btn btn-sm btn-outline-info"
+           onclick="closeModalAndNavigate(this.href); return false;">
+            <i class="bi bi-key me-1"></i> Password
+        </a>
+    </div>
+</div>
+
+<script>
+function closeModalAndNavigate(url) {
+    // Get the modal instance
+    const modalEl = document.getElementById('studentModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    
+    // Hide the modal
+    if (modal) {
+        modal.hide();
+    }
+    
+    // Remove backdrop manually just in case
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    
+    // Navigate to the URL after a short delay
+    setTimeout(() => {
+        window.location.href = url;
+    }, 150);
+}
+</script>

@@ -1,0 +1,147 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Create Organization — AttendancePro{% endblock %}
+
+{% block content %}
+<style>
+    #sidebar, .sidebar, .topbar, .sidebar-overlay { display: none !important; }
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+    }
+    .content-area {
+        padding: 0 !important;
+        width: 100%;
+    }
+    .setup-card {
+        border: none;
+        border-radius: 18px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+    .setup-header {
+        background: #111827;
+        color: #fff;
+        padding: 1.5rem;
+    }
+    .setup-subtitle {
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+    .form-control {
+        border-radius: 10px;
+        min-height: 46px;
+        border: 1px solid #e5e7eb;
+    }
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 0.15rem rgba(79, 70, 229, 0.12);
+    }
+</style>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-dark mb-1">
+                    <i class="bi bi-mortarboard-fill text-primary me-2"></i>AttendancePro
+                </h2>
+                <p class="text-muted mb-0">Set up your organization and administrator account</p>
+            </div>
+
+            <div class="card setup-card">
+                <div class="setup-header">
+                    <h5 class="fw-bold mb-1">Create Organization</h5>
+                    <div class="setup-subtitle">Register your institution and create the first admin account.</div>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger small py-2">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Organization Name</label>
+                                {{ form.organization_name }}
+                                {% if form.organization_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.organization_name.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">First Name</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.first_name.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Last Name</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.last_name.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Email Address</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.email.errors|join:", " }}</div>
+                                {% endif %}
+                                <div class="form-text small">This email will also be used as your login ID.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Password</label>
+                                {{ form.password }}
+                                {% if form.password.errors %}
+                                    <div class="text-danger small mt-1">{{ form.password.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Confirm Password</label>
+                                {{ form.confirm_password }}
+                                {% if form.confirm_password.errors %}
+                                    <div class="text-danger small mt-1">{{ form.confirm_password.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-dark btn-lg fw-bold">
+                                Create Organization
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <small class="text-muted">This creates your organization and the first admin account.</small>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <a href="{% url 'login' %}" class="small text-decoration-none">Already have an account? Sign in</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">AttendancePro SaaS Onboarding</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,26 +1,295 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Attendance System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Attendance Pro{% endblock %}</title>
 
-    <!-- Bootstrap 5 CDN -->
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
+    <!-- Custom CSS -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container-fluid">
-        <span class="navbar-brand mb-0 h1">Smart Attendance System</span>
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+    <!-- Brand Logo -->
+    <div class="brand">
+        <div class="brand-icon">
+            <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-text">Attendance Pro</span>
+    </div>
+
+    {% if user.is_authenticated and user.role != 'STUDENT' %}
+    
+    <!-- Navigation Menu -->
+    <div class="sidebar-nav">
+        <!-- SECTION: MAIN -->
+        <div class="nav-section">Main</div>
+
+        {% if user.role == 'ADMIN' %}
+        <a href="{% url 'dashboard' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
+            <i class="bi bi-grid-1x2-fill"></i>
+            <span>Dashboard</span>
+        </a>
+        {% endif %}
+
+        {% if user.role == 'TEACHER' %}
+        <a href="{% url 'teacher_dashboard' %}" class="nav-link {% block nav_teacher_dashboard %}{% endblock %}">
+            <i class="bi bi-grid-1x2-fill"></i>
+            <span>Dashboard</span>
+        </a>
+        {% endif %}
+
+        <a href="{% url 'attendance_list' %}" class="nav-link {% block nav_attendance %}{% endblock %}">
+            <i class="bi bi-calendar-check-fill"></i>
+            <span>Mark Attendance</span>
+        </a>
+        <a href="{% url 'absentees_list' %}" class="nav-link {% block nav_absentees %}{% endblock %}">
+            <i class="bi bi-person-x-fill"></i>
+            <span>Absentees</span>
+        </a>
+
+        <!-- SECTION: STUDENTS -->
+        <div class="nav-section">Students</div>
+        <a href="{% url 'select_department' %}" class="nav-link {% block nav_students %}{% endblock %}">
+            <i class="bi bi-people-fill"></i>
+            <span>All Students</span>
+        </a>
+        <a href="{% url 'import_students' %}" class="nav-link {% block nav_import %}{% endblock %}">
+            <i class="bi bi-file-earmark-arrow-up-fill"></i>
+            <span>Import Students</span>
+        </a>
+
+        <!-- SECTION: MANAGEMENT (Admin Only) -->
+        {% if user.role == 'ADMIN' %}
+        <div class="nav-section">Management</div>
+        <a href="{% url 'list_departments' %}" class="nav-link {% block nav_departments %}{% endblock %}">
+            <i class="bi bi-building-fill"></i>
+            <span>Departments</span>
+        </a>
+        <a href="{% url 'list_teachers' %}" class="nav-link {% block nav_teachers %}{% endblock %}">
+            <i class="bi bi-person-badge-fill"></i>
+            <span>Teachers</span>
+        </a>
+        {% endif %}
+
+        <!-- SECTION: REPORTS -->
+        <div class="nav-section">Reports</div>
+        <a href="{% url 'reports_hub' %}" class="nav-link {% block nav_reports %}{% endblock %}">
+            <i class="bi bi-bar-chart-line-fill"></i>
+            <span>Reports</span>
+        </a>
+        {% if user.role != 'STUDENT' %}
+        <a href="{% url 'calendar' %}" class="nav-link {% block nav_calendar %}{% endblock %}">
+            <i class="bi bi-calendar3"></i>
+            <span>Calendar</span>
+        </a>
+        {% endif %}
+
+        <!-- SECTION: ACCOUNT -->
+        {% if user.is_authenticated %}
+        <div class="nav-section">Account</div>
+        <a href="{% url 'account_profile' %}" class="nav-link {% block nav_account %}{% endblock %}">
+            <i class="bi bi-person-circle"></i>
+            <span>Profile</span>
+        </a>
+        {% if user.role == 'ADMIN' %}
+        <a href="{% url 'subscription' %}" class="nav-link {% block nav_billing %}{% endblock %}">
+            <i class="bi bi-credit-card-2-front-fill"></i>
+            <span>Billing / Upgrade</span>
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    {% endif %}
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+        {% if user.is_authenticated %}
+        <div class="user-profile-card">
+            <div class="user-avatar-sidebar">
+                {{ user.username|make_list|first|upper }}
+            </div>
+            <div class="user-details">
+                <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+                <div class="user-role">{{ user.get_role_display }}</div>
+            </div>
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-logout">
+                <i class="bi bi-box-arrow-left"></i>
+                <span>Logout</span>
+            </button>
+        </form>
+        {% endif %}
     </div>
 </nav>
 
-<div class="container">
-    {% block content %}
-    {% endblock %}
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Top Bar -->
+    <div class="topbar no-print">
+        <div class="topbar-left">
+            <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="page-header">
+                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <p class="page-subtitle d-none d-md-block">{% block page_subtitle %}{% endblock %}</p>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-item">
+                <i class="bi bi-calendar3 text-primary"></i>
+                <span class="d-none d-md-inline" id="current-date"></span>
+            </div>
+            <div class="topbar-divider d-none d-md-block"></div>
+            <div class="topbar-item">
+                <i class="bi bi-clock text-success"></i>
+                <span id="live-time"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        <!-- Trial Banner -->
+        {% if user.is_authenticated and org_plan == 'FREE_TRIAL' and trial_valid %}
+        <div class="trial-banner no-print">
+            <div class="trial-banner-content">
+                <div class="trial-icon">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="trial-text">
+                    <strong>Free Trial Active</strong>
+                    {% if trial_days_left is not None %}
+                    <span class="trial-days">{{ trial_days_left }} day{{ trial_days_left|pluralize }} remaining</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if user.role == 'ADMIN' %}
+            <a href="{% url 'subscription' %}" class="btn btn-warning btn-sm">
+                <i class="bi bi-rocket-takeoff me-1"></i> Upgrade Now
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages-container mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show animate-fadeInUp" role="alert">
+                <div class="alert-icon">
+                    {% if message.tags == 'success' %}
+                    <i class="bi bi-check-circle-fill"></i>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    {% elif message.tags == 'warning' %}
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    {% else %}
+                    <i class="bi bi-info-circle-fill"></i>
+                    {% endif %}
+                </div>
+                <div class="alert-content">{{ message }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Main Content Block -->
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer no-print">
+        <div class="footer-content">
+            <span>&copy; {% now "Y" %} Attendance Pro. All rights reserved.</span>
+            <span class="footer-version">v2.0</span>
+        </div>
+    </footer>
 </div>
 
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// Sidebar toggle (mobile)
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('show');
+    overlay.classList.toggle('show');
+    document.body.classList.toggle('sidebar-open');
+}
+
+// Close sidebar on overlay click
+document.getElementById('sidebarOverlay').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.remove('show');
+    this.classList.remove('show');
+    document.body.classList.remove('sidebar-open');
+});
+
+// Live time display
+function updateTime() {
+    const now = new Date();
+    const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+    const dateOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+    
+    const timeEl = document.getElementById('live-time');
+    const dateEl = document.getElementById('current-date');
+    
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-US', timeOptions);
+    if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', dateOptions);
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+// Add active state animation
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('clicking'));
+        this.classList.add('clicking');
+    });
+});
+
+// Scroll behavior for topbar
+let lastScroll = 0;
+window.addEventListener('scroll', function() {
+    const topbar = document.querySelector('.topbar');
+    const currentScroll = window.pageYOffset;
+    
+    if (currentScroll > 50) {
+        topbar.classList.add('scrolled');
+    } else {
+        topbar.classList.remove('scrolled');
+    }
+    
+    lastScroll = currentScroll;
+});
+</script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>
